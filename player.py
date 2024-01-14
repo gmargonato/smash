@@ -9,20 +9,22 @@ from config import *
 SCALE = 1
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, x, y, character):
+    def __init__(self, x, y, character, flip, ai):
         pygame.sprite.Sprite.__init__(self)
+        self.ai = ai
+        self.health = 0
         self.character = character
         self.current_action = 'idle'
         self.current_frame = 0
+        self.last_frame_update = 0
         self.velocity_y = 0
         self.momentum = 0
-        self.flip = False
+        self.in_air = True
+        self.flip = flip
         self.grid = False
         self.walking = False
         self.crouching = False
-        self.jumping = False
-        self.falling = True
-        self.attacking = False
+        self.jumping = False        
         self.blocking = False
         
         # Sprites
@@ -32,15 +34,31 @@ class Player(pygame.sprite.Sprite):
             'crouch': self.load_animation('crouch'),
             'jump': self.load_animation('jump'),
             'block' : self.load_animation('block'),
-            # 'atk': self.load_animation('atk'),
         }
 
-        self.hitboxes = {
-            'VENOM': (85,85),
+        self.characters = {
+            'VENOM': {
+                'width'     : 85,
+                'height'    : 85,
+                'offset'    : (270,200),
+            },
+            'CAP': {
+                'width'     : 75,
+                'height'    : 105,
+                'offset'    : (285,180),
+            },
+            'SPIDER': {
+                'width'     : 70,
+                'height'    : 60,
+                'offset'    : (275,230),
+            },            
         }
 
-        # Hitbox
-        self.hitbox = pygame.Rect(x, y, self.hitboxes[character][0]*SCALE, self.hitboxes[character][1]*SCALE)
+        # Hitbox & Sprite Offset
+        self.width = self.characters[self.character]['width'] * SCALE
+        self.height = self.characters[self.character]['height'] * SCALE
+        self.hitbox = pygame.Rect(x, y, self.width, self.height)
+        self.offset = (self.characters[self.character]['offset'][0], self.characters[self.character]['offset'][1])
 
     def load_animation(self, name):
         animation_list = []
@@ -58,16 +76,44 @@ class Player(pygame.sprite.Sprite):
         #print(f"{name} List:",animation_list)
         return animation_list
 
-    def update(self, tile_list):     
+    def update(self, tile_list):
+        self.get_input()
+        self.move(tile_list)
+        self.animate()
+
+    def get_input(self):
+        if self.ai: return
+        keys = pygame.key.get_pressed()
+        # Walk
+        if keys[pygame.K_d] or keys[pygame.K_a]:
+            self.flip = keys[pygame.K_a]
+            self.walking = True               
+        else:
+            self.walking = False
+        # Crouch
+        if keys[pygame.K_s]:
+            self.crouching = True
+        else:
+            self.crouching = False
+        # Block
+        if keys[pygame.K_b]:
+            self.blocking = True
+        else:
+            self.blocking = False 
+        # Jump
+        if keys[pygame.K_SPACE] and not self.jumping and not self.in_air:
+            self.velocity_y = -GRAVITY*1.5
+            self.jumping = True
+        else:
+            self.jumping = False
+
+    def move(self, tile_list):     
 
         SPEED = 10
         delta_x = 0
         delta_y = 0
 
-        # if self.hitbox.x >= 1295:   self.hitbox.x = -15
-        # if self.hitbox.x <= -20:    self.hitbox.x = 1290
-
-        if not self.falling:
+        if not self.in_air:
             if self.walking: delta_x = -SPEED if self.flip else SPEED
             self.momentum = delta_x
         else: 
@@ -80,12 +126,13 @@ class Player(pygame.sprite.Sprite):
         delta_y += self.velocity_y
 
         # Collision
+        self.in_air = True
         for tile in tile_list:
             #check for collision in x direction
-            if tile[1].colliderect(self.hitbox.x + delta_x, self.hitbox.y, self.hitboxes[self.character][0], self.hitboxes[self.character][1]):
+            if tile[1].colliderect(self.hitbox.x + delta_x, self.hitbox.y, self.width, self.height):
                 delta_x = 0
             #check for collision in y direction
-            if tile[1].colliderect(self.hitbox.x, self.hitbox.y + delta_y, self.hitboxes[self.character][0], self.hitboxes[self.character][1]):
+            if tile[1].colliderect(self.hitbox.x, self.hitbox.y + delta_y, self.width, self.height):
                 #check if below the ground i.e. jumping
                 if self.velocity_y < 0:
                     delta_y = tile[1].bottom - self.hitbox.top
@@ -94,6 +141,7 @@ class Player(pygame.sprite.Sprite):
                 elif self.velocity_y >= 0:
                     delta_y = tile[1].top - self.hitbox.bottom
                     self.velocity_y = 0
+                    self.in_air = False
 
         # Update plater coordinates
         self.hitbox.x += delta_x
@@ -101,68 +149,51 @@ class Player(pygame.sprite.Sprite):
 
         # Prevents falling from world
         if self.hitbox.bottom > SCREEN_HEIGHT:
-            self.hitbox.bottom = SCREEN_HEIGHT
-            delta_y = 0
-            self.falling = False
-            self.jumping = False
+            # self.hitbox.bottom = SCREEN_HEIGHT
+            # delta_y = 0
+            # self.in_air = False
+            self.hitbox.x = SCREEN_WIDTH/2
+            self.hitbox.y = 200
+            self.momentum = 0
+            
         
-    def get_input(self, event):
-        # next_action = self.current_action
-        # Key pressed
-        if event.type == pygame.KEYDOWN:                                  
-            if event.key in [pygame.K_a, pygame.K_d]:
-                self.flip = pygame.key.get_pressed()[pygame.K_a]                
-                self.walking = True
-                # next_action = 'walk'
-            if event.key == pygame.K_s:
-                self.crouching = True
-                # next_action = 'crouch'
-            if event.key == pygame.K_b:
-                self.blocking = True
-                # next_action = 'block'
-            if event.key == pygame.K_SPACE and (not self.jumping):
-                self.velocity_y = -GRAVITY
-                self.jumping = True
-                self.falling = True
-        # Key released
-        elif event.type == pygame.KEYUP:                
-            if event.key in [pygame.K_d, pygame.K_a]:
-                self.walking = False 
-                # next_action = 'idle'
-            if event.key == pygame.K_s:
-                self.crouching = False
-                # next_action = 'idle'
-            if event.key == pygame.K_b:
-                self.blocking = False
-                # next_action = 'idle'
-            if event.key == pygame.K_SPACE:
-                self.jumping = False
-        # Finally, update the action
-        # self.update_action(next_action)
-
-    def update_action(self, new_action):
-        if new_action != self.current_action:
-            self.current_frame = 0
-            self.current_action = new_action
-
     def animate(self):
+        # Disassociate animation interval from game's FPS
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_frame_update < 50:       
+            return
+        else: 
+            self.last_frame_update = current_time
+    
         last_frame = len(self.animations[self.current_action]) - 1
-        next_action = 'idle'
-        if self.walking:    next_action = 'walk'
-        elif self.crouching:   next_action = 'crouch'
-        elif self.blocking: next_action = 'block'
+
+        next_action = self.current_action
+
+        if self.in_air:
+            next_action = 'jump'  
+        else:      
+            if self.walking:   
+                next_action = 'walk'
+            elif self.crouching:   
+                next_action = 'crouch'
+            elif self.blocking: 
+                next_action = 'block'
+            else: 
+                next_action = 'idle'
         
+        if next_action != self.current_action:
+            self.current_frame = 0
+            self.current_action = next_action
+
         if self.current_frame < last_frame:
             self.current_frame += 1
-        else:
-            self.current_action = next_action
+        else:            
             self.current_frame = 0
             
     def draw(self, screen):
         screen.blit(
             pygame.transform.flip(self.animations[self.current_action][self.current_frame], self.flip, False), 
-            (self.hitbox.x -270, self.hitbox.y - 200)
-            # (self.hitbox.x -0, self.hitbox.y - 0)
+            (self.hitbox.x - self.offset[0], self.hitbox.y - self.offset[1])
         )
         if self.grid: 
             print(f"Pos: {self.hitbox.center}| Action: {self.current_action} | Frame: {self.current_frame} | Flip: {self.flip} | Velocity (Y): {self.velocity_y}")

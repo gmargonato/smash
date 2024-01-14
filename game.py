@@ -18,12 +18,16 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))#, RESIZABLE)
 pygame.display.set_caption('Smash')
 clock = pygame.time.Clock()
 FPS = 50
-last_frame_update = 0
-last_key_press_time = 0
+
+CHARACTERS = ['VENOM','CAP','SPIDER']
+player1_character = random.choice(CHARACTERS)
+CHARACTERS.remove(player1_character)
+player2_character = random.choice(CHARACTERS)
 
 # Objects
 world = World()
-player = Player(SCREEN_WIDTH/3, 200, character='VENOM')
+player = Player(450, 200, player1_character, False, False)
+player2 = Player(800, 200, player2_character, True, True)
 snow_effect = Snow(screen)
 
 # Main game loop
@@ -40,29 +44,25 @@ while True:
             if event.key == pygame.K_g:
                 player.grid = not player.grid
                 world.grid = not world.grid
-            if event.key == pygame.K_UP:
-                FPS = min(500, FPS + 50)
-                print(FPS)
-            if event.key == pygame.K_DOWN:                
-                FPS = max(0, FPS - 50)
-                print(FPS)
-        # PLAYER
-        player.get_input(event)
+            # if event.key == pygame.K_UP:
+            #     FPS = min(500, FPS + 50)
+            #     print(FPS)
+            # if event.key == pygame.K_DOWN:                
+            #     FPS = max(0, FPS - 50)
+            #     print(FPS)
             
-    # DRAW MAP    
-    #pygame.draw.line(screen, WHITE, (0, 400), (SCREEN_WIDTH, 400), 1)
+    # MAP    
     world.draw(screen)
 
-    # DRAW PLAYER   
+    # UPDATE PLAYER   
     player.update(world.tile_list)
-
     player.draw(screen)
-    if pygame.time.get_ticks() - last_frame_update > FPS:        
-        player.animate()
-        last_frame_update = pygame.time.get_ticks()
-    
+
+    player2.update(world.tile_list)
+    player2.draw(screen)
+
     # PARTICLES
-    #snow_effect.snow_flakes_generator()
+    snow_effect.snow_flakes_generator()
 
     pygame.display.flip()
     clock.tick(30)

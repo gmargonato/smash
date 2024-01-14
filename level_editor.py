@@ -1,6 +1,7 @@
 import pygame
 import csv
 import pickle
+from config import *
 
 pygame.init()
 
@@ -8,8 +9,6 @@ clock = pygame.time.Clock()
 FPS = 60
 
 #game window
-SCREEN_WIDTH = 640
-SCREEN_HEIGHT = 360
 LOWER_MARGIN = 125
 SIDE_MARGIN = 300
 
@@ -17,10 +16,9 @@ screen = pygame.display.set_mode((SCREEN_WIDTH + SIDE_MARGIN, SCREEN_HEIGHT + LO
 pygame.display.set_caption('Level Editor')
 
 #define game variables
-ROWS = 15
-MAX_COLS = 150
-TILE_SIZE = SCREEN_HEIGHT // ROWS
-TILE_TYPES = 15
+ROWS = 20
+MAX_COLS = 40
+TILE_TYPES = 2
 level = 0
 page = 0
 current_tile = 0
@@ -68,15 +66,6 @@ class SimpleButton:
 prev_button = SimpleButton("<", SCREEN_WIDTH + SIDE_MARGIN/4, SCREEN_HEIGHT + LOWER_MARGIN/3)
 next_button = SimpleButton(">", SCREEN_WIDTH + SIDE_MARGIN/2, SCREEN_HEIGHT + LOWER_MARGIN/3)
 
-#load images
-sky_img = pygame.image.load('SPRITES/BACKGROUND/BACKGROUND.png').convert_alpha()
-sky_img = pygame.transform.scale(sky_img, (int(sky_img.get_width() * 2), int(sky_img.get_height() * 2)))
-mountain_img = pygame.image.load('SPRITES/BACKGROUND/LAYER1.png').convert_alpha()
-mountain_img = pygame.transform.scale(mountain_img, (int(mountain_img.get_width() * 2), int(mountain_img.get_height() * 2)))
-pine1_img = pygame.image.load('SPRITES/BACKGROUND/LAYER2.png').convert_alpha()
-pine1_img = pygame.transform.scale(pine1_img, (int(pine1_img.get_width() * 2), int(pine1_img.get_height() * 2)))
-#pine2_img = pygame.image.load('SPRITES/BACKGROUND/LAYER3.png').convert_alpha()
-
 #store tiles in a list
 img_list = []
 for x in range(TILE_TYPES):
@@ -111,22 +100,6 @@ def draw_text(text, font, text_col, x, y):
 #create function for drawing background
 def draw_bg():
 	screen.fill(GRAY)
-	width = sky_img.get_width()
-	for x in range(4):
-		screen.blit(sky_img, ((x * width) - scroll * 0.5, 0))
-		screen.blit(mountain_img, ((x * width) - scroll * 0.6, SCREEN_HEIGHT - mountain_img.get_height() ))
-		screen.blit(pine1_img, ((x * width) - scroll * 0.7, SCREEN_HEIGHT - pine1_img.get_height() ))
-		#screen.blit(pine2_img, ((x * width) - scroll * 0.8, SCREEN_HEIGHT - pine2_img.get_height()))
-
-#draw grid
-def draw_grid():
-	#vertical lines
-	for c in range(MAX_COLS + 1):
-		pygame.draw.line(screen, WHITE, (c * TILE_SIZE - scroll, 0), (c * TILE_SIZE - scroll, SCREEN_HEIGHT))
-	#horizontal lines
-	for c in range(ROWS + 1):
-		pygame.draw.line(screen, WHITE, (0, c * TILE_SIZE), (SCREEN_WIDTH, c * TILE_SIZE))
-
 
 #function for drawing the world tiles
 def draw_world():
@@ -135,6 +108,18 @@ def draw_world():
 			if tile >= 0:
 				screen.blit(img_list[tile], (x * TILE_SIZE - scroll, y * TILE_SIZE))
 
+def draw_grid():
+	# vertical lines
+	for c in range(MAX_COLS + 1):
+		# pygame.draw.line(screen, WHITE, (c * TILE_SIZE - scroll, 0), (c * TILE_SIZE - scroll, SCREEN_HEIGHT))
+		pygame.draw.line(screen, WHITE, (c * TILE_SIZE - scroll, 0), (c * TILE_SIZE - scroll, min(SCREEN_HEIGHT, (ROWS + 1) * TILE_SIZE)))
+
+	# horizontal lines
+	for c in range(ROWS + 1):
+		pygame.draw.line(screen, WHITE, (0, c * TILE_SIZE), (SCREEN_WIDTH, c * TILE_SIZE))
+		# Draw row numbers
+		number_text = font.render(str(c), True, WHITE)
+		screen.blit(number_text, (0, c * TILE_SIZE + 0.2*TILE_SIZE))
 
 #make a tile-button list
 button_list = []
@@ -207,12 +192,12 @@ while run:
 				level += 1
 			if event.key == pygame.K_DOWN and level > 0:
 				level -= 1
-			if event.key == pygame.K_LEFT:
-				scroll_left = True
-			if event.key == pygame.K_RIGHT:
-				scroll_right = True
-			if event.key == pygame.K_RSHIFT:
-				scroll_speed = 5
+			# if event.key == pygame.K_LEFT:
+			# 	scroll_left = True
+			# if event.key == pygame.K_RIGHT:
+			# 	scroll_right = True
+			# if event.key == pygame.K_RSHIFT:
+			# 	scroll_speed = 5
 			if event.key == pygame.K_g:
 				show_grid = not show_grid
 			if event.key == pygame.K_s:
