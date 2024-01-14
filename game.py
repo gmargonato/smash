@@ -26,8 +26,8 @@ player2_character = random.choice(CHARACTERS)
 
 # Objects
 world = World()
-player = Player(450, 200, player1_character, False, False)
-player2 = Player(800, 200, player2_character, True, True)
+player = Player(450, 200, 'VENOM', False, False)
+# player2 = Player(800, 200, player2_character, True, True)
 snow_effect = Snow(screen)
 
 # Main game loop
@@ -58,11 +58,11 @@ while True:
     player.update(world.tile_list)
     player.draw(screen)
 
-    player2.update(world.tile_list)
-    player2.draw(screen)
+    # player2.update(world.tile_list)
+    # player2.draw(screen)
 
     # PARTICLES
-    snow_effect.snow_flakes_generator()
+    # snow_effect.snow_flakes_generator()
 
     pygame.display.flip()
     clock.tick(30)

@@ -77,12 +77,17 @@ class Player(pygame.sprite.Sprite):
         return animation_list
 
     def update(self, tile_list):
-        self.get_input()
+        if self.ai:
+            self.ai_input()
+        else:
+            self.get_input()
         self.move(tile_list)
         self.animate()
 
+    def ai_input(self):
+        pass
+
     def get_input(self):
-        if self.ai: return
         keys = pygame.key.get_pressed()
         # Walk
         if keys[pygame.K_d] or keys[pygame.K_a]:
@@ -131,6 +136,7 @@ class Player(pygame.sprite.Sprite):
             #check for collision in x direction
             if tile[1].colliderect(self.hitbox.x + delta_x, self.hitbox.y, self.width, self.height):
                 delta_x = 0
+                self.momentum = 0
             #check for collision in y direction
             if tile[1].colliderect(self.hitbox.x, self.hitbox.y + delta_y, self.width, self.height):
                 #check if below the ground i.e. jumping
@@ -172,13 +178,13 @@ class Player(pygame.sprite.Sprite):
         if self.in_air:
             next_action = 'jump'  
         else:      
-            if self.walking:   
+            if self.walking:
                 next_action = 'walk'
-            elif self.crouching:   
+            elif self.crouching:
                 next_action = 'crouch'
-            elif self.blocking: 
-                next_action = 'block'
-            else: 
+            elif self.blocking:
+                next_action = 'block'            
+            else:
                 next_action = 'idle'
         
         if next_action != self.current_action:
@@ -189,7 +195,7 @@ class Player(pygame.sprite.Sprite):
             self.current_frame += 1
         else:            
             self.current_frame = 0
-            
+                
     def draw(self, screen):
         screen.blit(
             pygame.transform.flip(self.animations[self.current_action][self.current_frame], self.flip, False), 
