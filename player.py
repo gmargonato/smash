@@ -7,6 +7,7 @@ import os
 from config import *
 
 SCALE = 1
+LOOP_ACTIONS = ['idle','walk','crouch','block','jump']
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y, character, flip, ai):
@@ -26,14 +27,20 @@ class Player(pygame.sprite.Sprite):
         self.crouching = False
         self.jumping = False        
         self.blocking = False
+        self.attacking = False
+        self.attack_type = 0
         
         # Sprites
         self.animations = {
-            'idle' : self.load_animation('idle'),
-            'walk' : self.load_animation('walk'),
-            'crouch': self.load_animation('crouch'),
-            'jump': self.load_animation('jump'),
-            'block' : self.load_animation('block'),
+            'idle'      : self.load_animation('idle'),
+            'walk'      : self.load_animation('walk'),
+            'crouch'    : self.load_animation('crouch'),
+            'jump'      : self.load_animation('jump'),
+            'mid_air'   : self.load_animation('mid_air'),
+            'fall'      : self.load_animation('fall'),
+            'block'     : self.load_animation('block'),
+            'atk_punch'     : self.load_animation('atk_punch'),
+            'atk_special'   : self.load_animation('atk_special'),
         }
 
         self.characters = {
@@ -81,13 +88,24 @@ class Player(pygame.sprite.Sprite):
             self.ai_input()
         else:
             self.get_input()
+        self.check_attack()        
         self.move(tile_list)
         self.animate()
 
     def ai_input(self):
         pass
 
+    def check_attack(self):
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_n]:
+            self.attack_type = 1
+        elif keys[pygame.K_m]:
+            self.attack_type = 2
+        else:
+            self.attack_type = 0
+
     def get_input(self):
+        if self.attacking: return
         keys = pygame.key.get_pressed()
         # Walk
         if keys[pygame.K_d] or keys[pygame.K_a]:
@@ -105,6 +123,9 @@ class Player(pygame.sprite.Sprite):
             self.blocking = True
         else:
             self.blocking = False 
+        # Attack    
+        if keys[pygame.K_n] or keys[pygame.K_m]:
+            self.attacking = True        
         # Jump
         if keys[pygame.K_SPACE] and not self.jumping and not self.in_air:
             self.velocity_y = -GRAVITY*1.5
@@ -162,40 +183,59 @@ class Player(pygame.sprite.Sprite):
             self.hitbox.y = 200
             self.momentum = 0
             
-        
     def animate(self):
+
+        qtd_frames = len(self.animations[self.current_action])
+        last_frame = qtd_frames - 1
+
+        FPS = 50
+        if qtd_frames == 2: FPS *= 4
+        
         # Disassociate animation interval from game's FPS
         current_time = pygame.time.get_ticks()
-        if current_time - self.last_frame_update < 50:       
+        if current_time - self.last_frame_update < FPS:
             return
         else: 
             self.last_frame_update = current_time
-    
-        last_frame = len(self.animations[self.current_action]) - 1
 
+        # Animation Loop
+        # Keep looping while state is true
+        if self.current_frame < last_frame:
+                self.current_frame += 1
+        else:
+            self.current_frame = 0
+            if self.attacking: self.attacking = False
+               
         next_action = self.current_action
 
         if self.in_air:
-            next_action = 'jump'  
-        else:      
+            if self.velocity_y <= -3:
+                next_action = 'jump'
+            elif -2 <= self.velocity_y < 7:
+                next_action = 'mid_air'
+            else:
+                next_action = 'fall'
+        else:
             if self.walking:
                 next_action = 'walk'
             elif self.crouching:
                 next_action = 'crouch'
             elif self.blocking:
-                next_action = 'block'            
+                next_action = 'block'       
+            elif self.attacking:
+                if self.attack_type == 1:
+                    next_action = 'atk_punch'
+                elif self.attack_type == 2:
+                    next_action = 'atk_special'
             else:
-                next_action = 'idle'
+                next_action = 'idle'            
         
+        # Action Loop
+        # Ensures the next action starts from frame 0
         if next_action != self.current_action:
             self.current_frame = 0
             self.current_action = next_action
-
-        if self.current_frame < last_frame:
-            self.current_frame += 1
-        else:            
-            self.current_frame = 0
-                
+    
     def draw(self, screen):
         screen.blit(
             pygame.transform.flip(self.animations[self.current_action][self.current_frame], self.flip, False), 
@@ -203,5 +243,6 @@ class Player(pygame.sprite.Sprite):
         )
         if self.grid: 
             print(f"Pos: {self.hitbox.center}| Action: {self.current_action} | Frame: {self.current_frame} | Flip: {self.flip} | Velocity (Y): {self.velocity_y}")
+            print(self.attacking)
             pygame.draw.rect(screen, WHITE, self.hitbox, 1)
             
