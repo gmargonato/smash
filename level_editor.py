@@ -18,7 +18,7 @@ pygame.display.set_caption('Level Editor')
 #define game variables
 ROWS = 20
 MAX_COLS = 40
-TILE_TYPES = 2
+TILE_TYPES = 7
 level = 0
 page = 0
 current_tile = 0

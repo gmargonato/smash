@@ -26,7 +26,7 @@ player2_character = random.choice(CHARACTERS)
 
 # Objects
 world = World()
-player = Player(450, 200, 'VENOM', False, False)
+player = Player(450, 200, 'CAP', False, False)
 # player2 = Player(800, 200, player2_character, True, True)
 snow_effect = Snow(screen)
 
