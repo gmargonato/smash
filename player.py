@@ -5,10 +5,13 @@ import random
 import time
 import os
 from config import *
+from VFX import VFX 
 
 # Auxiliar Variables
-last_attack = time.time()
+pygame.font.init()
+font = pygame.font.SysFont('Arial Black', 30)
 path = []
+
 characters = {
     'VENOM': {
         'scale'     : 1,
@@ -31,10 +34,12 @@ characters = {
 }
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, x, y, character, flip, ai):
+    def __init__(self, screen, x, y, character, flip, ai):
         pygame.sprite.Sprite.__init__(self)
+        self.screen = screen
+        self.vfx = VFX(self.screen)
         self.ai = ai
-        self.health = 0
+        self.percentage = 0
         self.character = character
         self.current_action = 'idle'
         self.current_frame = 0
@@ -61,15 +66,17 @@ class Player(pygame.sprite.Sprite):
 
         # Sprites
         self.animations = {
-            'idle'      : self.load_animation('idle'),
-            'walk'      : self.load_animation('walk'),
-            'crouch'    : self.load_animation('crouch'),
-            'jump'      : self.load_animation('jump'),
-            'mid_air'   : self.load_animation('mid_air'),
-            'fall'      : self.load_animation('fall'),            
-            'block'     : self.load_animation('block'),
+            'idle'          : self.load_animation('idle'),
+            'walk'          : self.load_animation('walk'),
+            'crouch'        : self.load_animation('crouch'),
+            'crouch_block'  : self.load_animation('crouch_block'),
+            'block'         : self.load_animation('block'),
+            'jump'          : self.load_animation('jump'),
+            'mid_air'       : self.load_animation('mid_air'),
+            'fall'          : self.load_animation('fall'),                        
             'atk_punch'     : self.load_animation('atk_punch'),
             'low_punch'     : self.load_animation('low_punch'),
+            'high_punch'    : self.load_animation('high_punch'),
             'atk_kick'      : self.load_animation('atk_kick'),
             'low_kick'      : self.load_animation('low_kick'),
             'high_kick'     : self.load_animation('high_kick'),
@@ -99,7 +106,7 @@ class Player(pygame.sprite.Sprite):
             self.ai_input()
         else:
             self.get_input()
-        self.combat()        
+        self.combat()
         self.move(tile_list)
         self.animate()
 
@@ -126,8 +133,9 @@ class Player(pygame.sprite.Sprite):
         else:
             self.blocking = False 
         # Attack    
-        if keys[pygame.K_n] or keys[pygame.K_m]:
-            self.attacking = self.get_cooldown()
+        if keys[pygame.K_n] or keys[pygame.K_m] and not self.attacking:
+            self.attacking = True
+            self.walking = False
         # Modifier    
         if keys[pygame.K_w]:
             self.modifier = True  
@@ -140,24 +148,22 @@ class Player(pygame.sprite.Sprite):
         else:
             self.jumping = False
 
-    def get_cooldown(self):
-        current_time = time.time()
-        if current_time - last_attack >= 0.5:
-            return True
-        else:
-            return False
-
     def combat(self):
-        if self.attacking: 
-            self.attack_type = 0
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_n]:
-                self.attack_type = 1
-                if self.crouching: self.attack_type = 3
-            elif keys[pygame.K_m]:
-                self.attack_type = 2 
-                if self.crouching: self.attack_type = 4
-                if self.modifier: self.attack_type = 5
+        global last_action
+        self.attack_type = 0
+
+        # TO-DO: Implement cooldown
+
+        # Calculates attack type
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_n]:
+            self.attack_type = 1
+            if self.crouching: self.attack_type = 3
+            if self.modifier: self.attack_type = 5
+        elif keys[pygame.K_m]:
+            self.attack_type = 2 
+            if self.crouching: self.attack_type = 4
+            if self.modifier: self.attack_type = 6
 
     def move(self, tile_list):     
 
@@ -200,10 +206,15 @@ class Player(pygame.sprite.Sprite):
         # Update plater coordinates
         self.hitbox.x += delta_x
         self.hitbox.y += delta_y
-        path.append((self.hitbox.x + self.hitbox.width // 2, self.hitbox.y + self.hitbox.height // 2))
+
+        if not self.ai:
+            path.append((self.hitbox.x + self.hitbox.width // 2, self.hitbox.y + self.hitbox.height // 2))
+            if len(path) > 50:
+                path.pop(0)
 
         # Prevents falling from world
         if self.hitbox.bottom > SCREEN_HEIGHT:
+            self.vfx.play_animation('ring_out', False, self.hitbox.x, SCREEN_HEIGHT-400)
             self.hitbox.x = SCREEN_WIDTH/2
             self.hitbox.y = 100
             self.momentum = 0
@@ -233,27 +244,26 @@ class Player(pygame.sprite.Sprite):
             else: # If it is the last frame of animation
                 self.current_frame = 0
                 # Cooldown for attacking starts when the reaches the last frame
-                if self.attacking:
-                    global last_attack
-                    self.attacking = False
-                    last_attack = time.time()
-
+                if self.attacking: self.attacking = False
         next_action = self.current_action
 
         if self.in_air:
             if self.velocity_y <= -3:
                 next_action = 'jump'
-            elif -2 <= self.velocity_y < 7:
+            elif -2 <= self.velocity_y < 7:                
                 next_action = 'mid_air'
             else:
                 next_action = 'fall'                    
         else:
             if self.walking:
                 next_action = 'walk'            
-            elif self.blocking:
+            elif self.blocking and not self.crouching:
                 next_action = 'block'
             elif self.crouching and not self.attacking:
-                next_action = 'crouch'       
+                if self.blocking:
+                    next_action = 'crouch_block'
+                else:        
+                    next_action = 'crouch'       
             elif self.attacking:
                 if self.attack_type == 1:
                     next_action = 'atk_punch'
@@ -264,7 +274,9 @@ class Player(pygame.sprite.Sprite):
                 if self.attack_type == 4:
                     next_action = 'low_kick'    
                 if self.attack_type == 5:
-                    next_action = 'high_kick'                        
+                    next_action = 'high_punch'        
+                if self.attack_type == 6:
+                    next_action = 'high_kick'                   
             else:
                 next_action = 'idle'            
         
@@ -273,15 +285,34 @@ class Player(pygame.sprite.Sprite):
             self.current_frame = 0
             self.current_action = next_action
         
-    def draw(self, screen):
-        screen.blit(
+    def draw(self):
+        self.draw_portrait()
+
+        self.screen.blit(
             pygame.transform.flip(self.animations[self.current_action][self.current_frame], self.flip, False), 
             (self.hitbox.x - self.offset[0], self.hitbox.y - self.offset[1])
-        )        
+        )      
+
+        # Red overlay if AI
+        if self.ai:
+            overlay_color = (255, 0, 0, 128)
+            overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            overlay.fill(overlay_color)
+            self.screen.blit(overlay, (self.hitbox.x, self.hitbox.y))
+
         if self.grid:
-            pygame.draw.rect(screen, WHITE, self.hitbox, 1) 
-            print(f"Pos: {self.hitbox.center}| Action: {self.current_action} | Attacking: ({self.attacking}, {self.attack_type}) | Frame: {self.current_frame} | Flip: {self.flip} | Velocity (Y): {self.velocity_y}")            
+            pygame.draw.rect(self.screen, WHITE, self.hitbox, 1)
+            print(f"Pos: {self.hitbox.center}| Action: {self.current_action} | Attack: (A: {self.attacking}, T: {self.attack_type}) | Frame: {self.current_frame} | Flip: {self.flip} | Velocity (Y): {self.velocity_y}")            
             for i in range(1, len(path)):
-                pygame.draw.line(screen, WHITE, path[i - 1], path[i])
+                pygame.draw.line(self.screen, WHITE, path[i - 1], path[i])
             
-            
+    def draw_portrait(self):
+        portrait_width = 100
+        portrait_height = 100
+
+        # Portrait
+        #self.screen.blit(pygame.transform.scale(self.portrait, (portrait_width, portrait_height)), (SCREEN_WIDTH // 2 - portrait_width // 2, SCREEN_HEIGHT - 100))
+
+        # Percentage
+        percentage_text = font.render(f"{str(self.percentage)}%", True, WHITE)
+        self.screen.blit(percentage_text, (100, SCREEN_HEIGHT - 100))

@@ -25,9 +25,9 @@ CHARACTERS.remove(player1_character)
 player2_character = random.choice(CHARACTERS)
 
 # Objects
-world = World()
-player = Player(450, 200, 'CAP', False, False)
-# player2 = Player(800, 200, player2_character, True, True)
+world = World(screen)
+player = Player(screen, 450, 200, 'CAP', False, False)
+player2 = Player(screen, 750, 200, 'CAP', True, True)
 snow_effect = Snow(screen)
 
 # Main game loop
@@ -52,16 +52,19 @@ while True:
             #     print(FPS)
             
     # MAP    
-    world.draw(screen)
+    world.draw()
 
     # UPDATE PLAYER   
     player.update(world.tile_list)
-    player.draw(screen)
+    player.draw()
+
+    player2.update(world.tile_list)
+    player2.draw()
 
     # player2.update(world.tile_list)
     # player2.draw(screen)
 
-    # PARTICLES
+    # PARTICLES 
     # snow_effect.snow_flakes_generator()
 
     pygame.display.flip()

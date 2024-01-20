@@ -19,7 +19,8 @@ tile_images = {
 background = pygame.image.load('SPRITES/BACKGROUND/BG1.png')
 
 class World():
-    def __init__(self):
+    def __init__(self, screen):
+        self.screen = screen
         self.world_data = self.load_world()
         self.tile_list = []
         self.grid = False
@@ -48,14 +49,14 @@ class World():
                 world_data.append(world_row)
         return world_data
 
-    def draw(self, screen):
-        screen.fill(COLOR_BG)
-        if not self.grid: screen.blit(background, (0,0))
+    def draw(self):
+        self.screen.fill(COLOR_BG)
+        if not self.grid: self.screen.blit(background, (0,0))
         for tile in self.tile_list:
             if self.grid:
-                screen.blit(self.tile_0, tile[1])
+                self.screen.blit(self.tile_0, tile[1])
             else:                
-                screen.blit(tile[0], tile[1])
+                self.screen.blit(tile[0], tile[1])
     
         #     for line in range(0,50):
         #         pygame.draw.line(screen, WHITE, (0, line * TILE_SIZE), (SCREEN_WIDTH, line * TILE_SIZE))
