@@ -12,7 +12,7 @@ from player import Player
 from snow import Snow
 from world import World
 
-# PyGame
+# PyGamed
 pygame.init()
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))#, RESIZABLE)
 pygame.display.set_caption('Smash')

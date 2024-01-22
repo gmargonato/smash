@@ -10,7 +10,7 @@ from config import *
 class VFX:
     def __init__(self, screen):
         self.screen = screen
-        self.scale = 0.5
+        self.scale = 0.25
         self.animations = {
             'ring_out' : self.load_animation('ring_out'),            
         }
@@ -37,10 +37,8 @@ class VFX:
             for frame in self.animations[effect]:  
                 # Adjustments if Ring-Out effect
                 if effect == 'ring_out':
-                    if x <= 0:
-                        frame = pygame.transform.rotate(frame, -90)
-                        x = 0
-                
+                    y = SCREEN_HEIGHT-200
+
                 # Print the effect on-screen
                 self.screen.blit(
                     pygame.transform.flip(frame, flip, False),

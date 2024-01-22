@@ -14,6 +14,17 @@ tile_images = {
     4: pygame.transform.scale(pygame.image.load('SPRITES/TILES/4.png'), (TILE_SIZE, TILE_SIZE)),
     5: pygame.transform.scale(pygame.image.load('SPRITES/TILES/5.png'), (TILE_SIZE, TILE_SIZE)),
     6: pygame.transform.scale(pygame.image.load('SPRITES/TILES/6.png'), (TILE_SIZE, TILE_SIZE)),
+    7: pygame.transform.scale(pygame.image.load('SPRITES/TILES/7.png'), (TILE_SIZE, TILE_SIZE)),
+    8: pygame.transform.scale(pygame.image.load('SPRITES/TILES/8.png'), (TILE_SIZE, TILE_SIZE)),
+    9: pygame.transform.scale(pygame.image.load('SPRITES/TILES/9.png'), (TILE_SIZE, TILE_SIZE)),
+    10: pygame.transform.scale(pygame.image.load('SPRITES/TILES/10.png'), (TILE_SIZE, TILE_SIZE)),
+    11: pygame.transform.scale(pygame.image.load('SPRITES/TILES/11.png'), (TILE_SIZE, TILE_SIZE)),
+    12: pygame.transform.scale(pygame.image.load('SPRITES/TILES/12.png'), (TILE_SIZE, TILE_SIZE)),
+    13: pygame.transform.scale(pygame.image.load('SPRITES/TILES/13.png'), (TILE_SIZE, TILE_SIZE)),
+    14: pygame.transform.scale(pygame.image.load('SPRITES/TILES/14.png'), (TILE_SIZE, TILE_SIZE)),
+    15: pygame.transform.scale(pygame.image.load('SPRITES/TILES/15.png'), (TILE_SIZE, TILE_SIZE)),
+    16: pygame.transform.scale(pygame.image.load('SPRITES/TILES/16.png'), (TILE_SIZE, TILE_SIZE)),
+    17: pygame.transform.scale(pygame.image.load('SPRITES/TILES/17.png'), (TILE_SIZE, TILE_SIZE)),
 }
 
 background = pygame.image.load('SPRITES/BACKGROUND/BG1.png')

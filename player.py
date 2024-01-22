@@ -13,24 +13,12 @@ font = pygame.font.SysFont('Arial Black', 30)
 path = []
 
 characters = {
-    'VENOM': {
-        'scale'     : 1,
-        'width'     : 85,
-        'height'    : 85,
-        'offset'    : (270,200),
-    },
     'CAP': {
-        'scale'     : 1,
+        'scale'     : 0.75,
         'width'     : 75,
         'height'    : 105,
-        'offset'    : (285,180),
-    },
-    'SPIDER': {
-        'scale'     : 1,
-        'width'     : 70,
-        'height'    : 60,
-        'offset'    : (275,230),
-    },            
+        'offset'    : (285,170),
+    },  
 }
 
 class Player(pygame.sprite.Sprite):
@@ -62,7 +50,7 @@ class Player(pygame.sprite.Sprite):
         self.width = characters[self.character]['width'] * self.scale
         self.height = characters[self.character]['height'] * self.scale
         self.hitbox = pygame.Rect(x, y, self.width, self.height)
-        self.offset = (characters[self.character]['offset'][0], characters[self.character]['offset'][1])
+        self.offset = (characters[self.character]['offset'][0] * self.scale, characters[self.character]['offset'][1] * self.scale)
 
         # Sprites
         self.animations = {
@@ -175,8 +163,11 @@ class Player(pygame.sprite.Sprite):
         if not self.in_air:
             if self.walking: delta_x = -SPEED if self.flip else SPEED
             self.momentum = delta_x
-        else: 
+        else:
+            if self.momentum > 0: self.momentum -= 0.15
+            if self.momentum < 0: self.momentum += 0.15
             delta_x = self.momentum
+
 
         # Gravity
         self.velocity_y += 1
@@ -214,9 +205,9 @@ class Player(pygame.sprite.Sprite):
 
         # Prevents falling from world
         if self.hitbox.bottom > SCREEN_HEIGHT:
-            self.vfx.play_animation('ring_out', False, self.hitbox.x, SCREEN_HEIGHT-400)
-            self.hitbox.x = SCREEN_WIDTH/2
-            self.hitbox.y = 100
+            self.vfx.play_animation('ring_out', False, self.hitbox.centerx, self.hitbox.centery)
+            self.hitbox.x = SCREEN_WIDTH/2-50
+            self.hitbox.y = 0
             self.momentum = 0
             path = []
             
@@ -286,10 +277,15 @@ class Player(pygame.sprite.Sprite):
             self.current_action = next_action
         
     def draw(self):
+
+        sprite = self.animations[self.current_action][self.current_frame]
+
+        # Draw Character Portrait & Percentage
         self.draw_portrait()
 
+        # Draw Player
         self.screen.blit(
-            pygame.transform.flip(self.animations[self.current_action][self.current_frame], self.flip, False), 
+            pygame.transform.flip(sprite, self.flip, False), 
             (self.hitbox.x - self.offset[0], self.hitbox.y - self.offset[1])
         )      
 
@@ -300,6 +296,7 @@ class Player(pygame.sprite.Sprite):
             overlay.fill(overlay_color)
             self.screen.blit(overlay, (self.hitbox.x, self.hitbox.y))
 
+        # Draw Grid
         if self.grid:
             pygame.draw.rect(self.screen, WHITE, self.hitbox, 1)
             print(f"Pos: {self.hitbox.center}| Action: {self.current_action} | Attack: (A: {self.attacking}, T: {self.attack_type}) | Frame: {self.current_frame} | Flip: {self.flip} | Velocity (Y): {self.velocity_y}")            

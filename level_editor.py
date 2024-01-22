@@ -18,7 +18,7 @@ pygame.display.set_caption('Level Editor')
 #define game variables
 ROWS = 20
 MAX_COLS = 40
-TILE_TYPES = 7
+TILE_TYPES = 18
 level = 0
 page = 0
 current_tile = 0
@@ -69,7 +69,10 @@ next_button = SimpleButton(">", SCREEN_WIDTH + SIDE_MARGIN/2, SCREEN_HEIGHT + LO
 #store tiles in a list
 img_list = []
 for x in range(TILE_TYPES):
-	img = pygame.image.load(f'SPRITES/TILES/{x}.png').convert_alpha()
+	try:
+		img = pygame.image.load(f'SPRITES/TILES/{x}.png').convert_alpha()
+	except:
+		img = pygame.image.load(f'SPRITES/TILES/0.png').convert_alpha()	
 	img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
 	img_list.append(img)
 
@@ -96,10 +99,6 @@ for tile in range(0, MAX_COLS):
 def draw_text(text, font, text_col, x, y):
 	text = font.render(text, True, text_col)
 	screen.blit(text, (x, y))
-
-#create function for drawing background
-def draw_bg():
-	screen.fill(GRAY)
 
 #function for drawing the world tiles
 def draw_world():
@@ -138,16 +137,17 @@ while run:
 
 	clock.tick(FPS)
 
-	draw_bg()
+	screen.fill(COLOR_BG)
 	if show_grid: draw_grid()
 	draw_world()
+
+	#draw tile panel and tiles
+	pygame.draw.rect(screen, GRAY, (SCREEN_WIDTH, 0, SIDE_MARGIN, SCREEN_HEIGHT))
+	pygame.draw.rect(screen, GRAY, (0, SCREEN_HEIGHT-LOWER_MARGIN/3, SCREEN_WIDTH+SIDE_MARGIN, LOWER_MARGIN*2))
 
 	draw_text(f'Level: {level}', font, WHITE, 10, SCREEN_HEIGHT + LOWER_MARGIN - 100)
 	draw_text(f'Page: {page}', font, WHITE, 10, SCREEN_HEIGHT + LOWER_MARGIN - 70)
 	draw_text('Press S to save and L to load a level. Press UP or DOWN to change it.', font, WHITE, 10, SCREEN_HEIGHT + LOWER_MARGIN - 40)
-
-	#draw tile panel and tiles
-	pygame.draw.rect(screen, GRAY, (SCREEN_WIDTH, 0, SIDE_MARGIN, SCREEN_HEIGHT))
 
 	#BUTTONS
 	# Tiles
