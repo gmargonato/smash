@@ -26,7 +26,7 @@ player2_character = random.choice(CHARACTERS)
 
 # Objects
 world = World(screen)
-player = Player(screen, 450, 200, 'CAP', False, False)
+player1 = Player(screen, 450, 200, 'CAP', False, False)
 player2 = Player(screen, 750, 200, 'CAP', True, True)
 snow_effect = Snow(screen)
 
@@ -42,27 +42,19 @@ while True:
         # GAME
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_g:
-                player.grid = not player.grid
+                player1.grid = not player1.grid
+                player2.grid = not player2.grid
                 world.grid = not world.grid
-            # if event.key == pygame.K_UP:
-            #     FPS = min(500, FPS + 50)
-            #     print(FPS)
-            # if event.key == pygame.K_DOWN:                
-            #     FPS = max(0, FPS - 50)
-            #     print(FPS)
-            
+
     # MAP    
     world.draw()
 
-    # UPDATE PLAYER   
-    player.update(world.tile_list)
-    player.draw()
+    # UPDATE PLAYERS
+    player1.update(world.tile_list, player2)
+    player1.draw()
 
-    player2.update(world.tile_list)
+    player2.update(world.tile_list, player1)
     player2.draw()
-
-    # player2.update(world.tile_list)
-    # player2.draw(screen)
 
     # PARTICLES 
     # snow_effect.snow_flakes_generator()
