@@ -17,7 +17,7 @@ pygame.init()
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))#, RESIZABLE)
 pygame.display.set_caption('Smash')
 clock = pygame.time.Clock()
-FPS = 50
+FPS = 60
 
 CHARACTERS = ['VENOM','CAP','SPIDER']
 player1_character = random.choice(CHARACTERS)

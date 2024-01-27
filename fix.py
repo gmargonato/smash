@@ -1,17 +1,35 @@
 import os
+from PIL import Image
 
-def rename_gif_to_png(directory_path):
-    for filename in os.listdir(directory_path):
-        if filename.endswith(".gif"):
-            old_path = os.path.join(directory_path, filename)
-            new_filename = os.path.splitext(filename)[0] + ".png"
-            new_path = os.path.join(directory_path, new_filename)
+root_folder = '/Users/gabrielmargonato/Documents/Python Scripts/smash/SPRITES/RYU'
 
-            os.rename(old_path, new_path)
-            print(f"Renamed: {filename} to {new_filename}")
+# Iterate through folders and files
+for root, dirs, files in os.walk(root_folder):
+    for file in files:
+        if file.lower().endswith('.png'):  # Adjust the file extensions as needed
+            file_path = os.path.join(root, file)
 
-# Specify the directory path where your files are located
-directory_path = "/Users/gabrielmargonato/Documents/Python Scripts/2DP/SPRITES/VENOM/CROUCH"
+            # Open the image
+            img = Image.open(file_path)
+            img = img.convert("RGBA")
 
-# Call the function to rename .gif files to .png
-rename_gif_to_png(directory_path)
+            # Get the image data
+            datas = img.getdata()
+
+            # Process the image data
+            newData = []
+            for item in datas:
+                # If the pixel matches the specified color, make it transparent
+                if item[0] == 248 and item[1] == 0 and item[2] == 248:
+                    newData.append((255, 255, 255, 0))
+                else:
+                    newData.append(item)
+
+            # Update the image data
+            img.putdata(newData)
+
+            # Save the new image with transparency
+            new_file_path = os.path.join(root, file)  # Appending '_t' to the original filename
+            img.save(new_file_path, "PNG")
+
+            print(f"Converted: {file}")

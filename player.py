@@ -19,6 +19,13 @@ characters = {
         'height'    : 95,
         'offset'    : (285,180),
     },  
+    'RYU': {
+        'scale'     : 0.85,
+        'width'     : 65,
+        'height'    : 85,
+        'offset'    : (275,195),
+    },  
+
 }
 
 class Player(pygame.sprite.Sprite):
@@ -62,7 +69,8 @@ class Player(pygame.sprite.Sprite):
             'block'         : self.load_animation('block'),
             'jump'          : self.load_animation('jump'),
             'mid_air'       : self.load_animation('mid_air'),
-            'fall'          : self.load_animation('fall'),                        
+            'fall'          : self.load_animation('fall'),   
+            'hit'           : self.load_animation('hit'),                     
             'atk_punch'     : self.load_animation('atk_punch'),
             'low_punch'     : self.load_animation('low_punch'),
             'high_punch'    : self.load_animation('high_punch'),
@@ -81,25 +89,30 @@ class Player(pygame.sprite.Sprite):
         for png_file in png_files:
             full_path = os.path.join(path, png_file)
             try:
-                img = pygame.image.load(full_path)
+                img = pygame.image.load(full_path)#.convert_alpha()
             except:
                 img = pygame.image.load('/Users/gabrielmargonato/Documents/Python Scripts/smash/SPRITES/blank.png')
             img = pygame.transform.scale(img, (int(img.get_width() * self.scale), int(img.get_height() * self.scale)))
-            img.set_colorkey((248,0,248))
+            #img.set_colorkey((248,0,248))
             animation_list.append(img)
         #print(f"{name} List:",animation_list)
         return animation_list
 
     def update(self, tile_list, target):
         if self.ai:
-            self.ai_input()
+            self.ai_input(target)
         else:
             self.get_input()
         self.combat(target)
         self.move(tile_list)
         self.animate()
 
-    def ai_input(self):
+    def ai_input(self, target):
+        if target.hitbox.x < self.hitbox.x:
+            self.flip = True        
+        else:
+            self.flip = False
+        
         moves_list = ['n','m','b']
         if self.cooldown <= 0:
             
@@ -155,7 +168,6 @@ class Player(pygame.sprite.Sprite):
         # Attack    
         if keys[pygame.K_n] or keys[pygame.K_m] and not self.attacking:
             self.attacking = True
-            self.cooldown = 1000
             self.walking = False
         # Modifier    
         if keys[pygame.K_w]:
@@ -163,7 +175,7 @@ class Player(pygame.sprite.Sprite):
         else:
             self.modifier = False          
         # Jump
-        if keys[pygame.K_SPACE] and not self.jumping and not self.in_air:        
+        if keys[pygame.K_SPACE] and not self.jumping and not self.in_air and not self.crouching:        
             self.velocity_y = -GRAVITY*1.5
             self.jumping = True
         else:
@@ -179,9 +191,7 @@ class Player(pygame.sprite.Sprite):
                     target.hitbox.x += 10 * target.percentage
                 else:
                     target.hitbox.x -= 10 * target.percentage
-            # else:
-            #     print('Blocked!')
-
+            
         if self.ai: return
         else: pass
         self.attack_type = 0
@@ -196,6 +206,7 @@ class Player(pygame.sprite.Sprite):
             self.attack_type = 1
             if self.crouching: self.attack_type = 3
             if self.modifier: self.attack_type = 5
+            self.cooldown = 128
         elif keys[pygame.K_m]:
             self.attack_type = 2 
             if self.crouching: self.attack_type = 4
@@ -241,6 +252,10 @@ class Player(pygame.sprite.Sprite):
                     delta_y = tile[1].top - self.hitbox.bottom
                     self.velocity_y = 0
                     self.in_air = False
+                    # Jumping while crouching makes it fall through the platform
+                    if self.crouching and pygame.key.get_pressed()[pygame.K_SPACE]:
+                        self.in_air = True
+                        self.hitbox.top = tile[1].bottom                        
 
         # Update plater coordinates
         self.hitbox.x += delta_x
@@ -326,27 +341,29 @@ class Player(pygame.sprite.Sprite):
             self.current_action = next_action
         
     def draw(self):
-
         sprite = self.animations[self.current_action][self.current_frame]
-
+        
         # Draw Character Portrait & Percentage
         self.draw_portrait()
 
-        # Draw Player
-        self.screen.blit(
-            pygame.transform.flip(sprite, self.flip, False), 
-            (self.hitbox.x - self.offset[0], self.hitbox.y - self.offset[1])
-        )      
-
         # Draw Grid
         if self.grid:
+            # Mask
+            sprite_mask = pygame.mask.from_surface(sprite)
+            mask_surface = pygame.transform.flip(sprite_mask.to_surface(unsetcolor=(0, 0, 0, 0)), self.flip, False)
+            self.screen.blit(mask_surface, (self.hitbox.x - self.offset[0], self.hitbox.y - self.offset[1]))
+
             if self.ai:
                 pygame.draw.rect(self.screen, RED, self.hitbox, 1)
             else:
                 pygame.draw.rect(self.screen, WHITE, self.hitbox, 1)
-                print(f"Pos: {self.hitbox.center}| Action: {self.current_action} | Attack: (A: {self.attacking}, T: {self.attack_type}, C: {self.cooldown}) | Frame: {self.current_frame} | Flip: {self.flip} | Velocity (Y): {self.velocity_y}")            
+                print(f"Pos: {self.hitbox.center}| Action: {self.current_action} | Attack: (A: {self.attacking}, T: {self.attack_type}, C: {self.cooldown}) | Frame: {self.current_frame} | Flip: {self.flip} | Velocity (Y): {self.velocity_y}")
                 for i in range(1, len(path)):
                     pygame.draw.line(self.screen, WHITE, path[i - 1], path[i])
+        else:
+            # Draw Player
+            self.screen.blit(pygame.transform.flip(sprite, self.flip, False), (self.hitbox.x - self.offset[0], self.hitbox.y - self.offset[1]))
+
             
     def draw_portrait(self):
         portrait_width = 100
