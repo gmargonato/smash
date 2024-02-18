@@ -13,19 +13,12 @@ font = pygame.font.SysFont('Arial Black', 30)
 path = []
 
 characters = {
-    'CAP': {
+    'CAP_SHIELD': {
         'scale'     : 0.75,
         'width'     : 75,
         'height'    : 95,
-        'offset'    : (285,180),
-    },  
-    'RYU': {
-        'scale'     : 0.85,
-        'width'     : 65,
-        'height'    : 85,
-        'offset'    : (275,195),
-    },  
-
+        'offset'    : (10,8),
+    },
 }
 
 class Player(pygame.sprite.Sprite):
@@ -34,6 +27,7 @@ class Player(pygame.sprite.Sprite):
         self.screen = screen
         self.vfx = VFX(self.screen)
         self.ai = ai
+        self.lives = 3
         self.percentage = 0
         self.character = character
         self.current_action = 'idle'
@@ -48,54 +42,52 @@ class Player(pygame.sprite.Sprite):
         self.crouching = False
         self.jumping = False        
         self.blocking = False
-        self.attacking = False
+        self.start_attacking = None
+        self.currently_attacking = False
+        self.attack_time = 0
         self.modifier = False
-        self.attack_type = 0
-        self.cooldown = 0
+        self.attack_cycle = 1
         
         # Hitbox & Sprite Offset
         self.scale = characters[self.character]['scale']
         self.width = characters[self.character]['width'] * self.scale
         self.height = characters[self.character]['height'] * self.scale
+        self.offset = (characters[self.character]['offset'][0] * self.scale, characters[self.character]['offset'][1] * self.scale)        
         self.hitbox = pygame.Rect(x, y, self.width, self.height)
-        self.offset = (characters[self.character]['offset'][0] * self.scale, characters[self.character]['offset'][1] * self.scale)
 
         # Sprites
         self.animations = {
-            'idle'          : self.load_animation('idle'),
-            'walk'          : self.load_animation('walk'),
-            'crouch'        : self.load_animation('crouch'),
-            'crouch_block'  : self.load_animation('crouch_block'),
-            'block'         : self.load_animation('block'),
-            'jump'          : self.load_animation('jump'),
-            'mid_air'       : self.load_animation('mid_air'),
-            'fall'          : self.load_animation('fall'),   
-            'hit'           : self.load_animation('hit'),                     
-            'atk_punch'     : self.load_animation('atk_punch'),
-            'low_punch'     : self.load_animation('low_punch'),
-            'high_punch'    : self.load_animation('high_punch'),
-            'atk_kick'      : self.load_animation('atk_kick'),
-            'low_kick'      : self.load_animation('low_kick'),
-            'high_kick'     : self.load_animation('high_kick'),
+            'idle'          : self.load_animation('IDLE'),
+            'walk'          : self.load_animation('WALK'),
+            'crouch'        : self.load_animation('CROUCH'),
+            'block'         : self.load_animation('BLOCK'),
+            'crouch_block'  : self.load_animation('CROUCH_BLOCK'),
+            'jump'          : self.load_animation('JUMP'),
+            'mid_air'       : self.load_animation('MID_AIR'),
+            'fall'          : self.load_animation('FALL'),
+            'NP1'           : self.load_animation('NORMAL_PUNCH_1'),
+            'NP2'           : self.load_animation('NORMAL_PUNCH_2'),
+            'LP1'           : self.load_animation('LOW_PUNCH_1'),
+            'LP2'           : self.load_animation('LOW_PUNCH_2'),
+            'HP1'           : self.load_animation('HIGH_PUNCH_1'),
+            'HP2'           : self.load_animation('HIGH_PUNCH_2'),
+            'NK1'           : self.load_animation('NORMAL_KICK_1'),
+            'NK2'           : self.load_animation('NORMAL_KICK_2'),
+            'NK3'           : self.load_animation('NORMAL_KICK_3'),
         }
 
     def load_animation(self, name):
         animation_list = []
-        path = f'SPRITES/{self.character}/{name.upper()}/'
+        path = f'SPRITES/{self.character}/{name}/'
         files = os.listdir(path)
         png_files = [file for file in files if file.endswith('.png')]
         png_files.sort(key=lambda x: int(x.split('.')[0]))    
-        #print("PNG Files:", png_files)
         for png_file in png_files:
             full_path = os.path.join(path, png_file)
-            try:
-                img = pygame.image.load(full_path)#.convert_alpha()
-            except:
-                img = pygame.image.load('/Users/gabrielmargonato/Documents/Python Scripts/smash/SPRITES/blank.png')
+            img = pygame.image.load(full_path)#.convert_alpha()
             img = pygame.transform.scale(img, (int(img.get_width() * self.scale), int(img.get_height() * self.scale)))
             #img.set_colorkey((248,0,248))
             animation_list.append(img)
-        #print(f"{name} List:",animation_list)
         return animation_list
 
     def update(self, tile_list, target):
@@ -108,49 +100,24 @@ class Player(pygame.sprite.Sprite):
         self.animate()
 
     def ai_input(self, target):
+
         if target.hitbox.x < self.hitbox.x:
             self.flip = True        
         else:
-            self.flip = False
-        
-        moves_list = ['n','m','b']
-        if self.cooldown <= 0:
-            
-            self.blocking = False
-            self.attacking = False
-            self.jumping = False
-            self.crouching = False
-            
-            selected_move = random.choice(moves_list)
-            print(f"[AI] Timestamp: {time.time()} | Move: {selected_move}")
-            self.cooldown = 500
-            if selected_move == 'space':
-                self.velocity_y = -GRAVITY*1.5
-                self.jumping = True
-            if not self.jumping:            
-                if selected_move == 'b':
-                    self.blocking = True            
-                if selected_move == 's':
-                    self.crouching = True                            
-                if selected_move == 'n':                    
-                    self.attacking = True
-                    self.attack_type = 1
-                if selected_move == 'm':
-                    self.attacking = True
-                    self.attack_type = 2      
-        else:            
-            self.cooldown -= 16
+            self.flip = False        
             
     def get_input(self):
-        if self.attacking: return
+
         keys = pygame.key.get_pressed()
+
+        # DEV
         if keys[pygame.K_UP]:
             self.percentage += 5
         if keys[pygame.K_DOWN]:
             self.percentage -= 5
             
         # Walk
-        if keys[pygame.K_d] or keys[pygame.K_a]:
+        if (keys[pygame.K_d] or keys[pygame.K_a]) and not self.currently_attacking and not self.blocking:
             self.flip = keys[pygame.K_a]
             self.walking = True               
         else:
@@ -161,14 +128,17 @@ class Player(pygame.sprite.Sprite):
         else:
             self.crouching = False
         # Block
-        if keys[pygame.K_b]:
+        if keys[pygame.K_b] and not self.currently_attacking:
             self.blocking = True
+            self.walking = False
         else:
             self.blocking = False 
         # Attack    
-        if keys[pygame.K_n] or keys[pygame.K_m] and not self.attacking:
-            self.attacking = True
-            self.walking = False
+        if (keys[pygame.K_n] or keys[pygame.K_m]) and not self.currently_attacking:                        
+            if keys[pygame.K_n]:
+                self.start_attacking = 'punch'
+            else:
+                self.start_attacking = 'kick'
         # Modifier    
         if keys[pygame.K_w]:
             self.modifier = True  
@@ -182,36 +152,37 @@ class Player(pygame.sprite.Sprite):
             self.jumping = False
 
     def combat(self, target):
-        
-        # Getting hit by the other player
-        if self.attacking and self.hitbox.colliderect(target.hitbox):
-            if not target.blocking:
+
+        # Starting an attack
+        if self.start_attacking != None:
+            # print("AAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+            self.currently_attacking = True
+            self.walking = False
+            self.blocking = False
+            # set timestamp
+            self.attack_time = time.time()
+            # set attack type
+            if self.start_attacking == 'punch':
+                if self.crouching:  self.attack_type = 'LP1'
+                elif self.modifier: self.attack_type = 'HP1' 
+                else:               self.attack_type = 'NP2'
+            else:
+                if self.crouching:  self.attack_type = 'LK1'
+                elif self.modifier: self.attack_type = 'HK1' 
+                else:               self.attack_type = 'NK3'
+            self.start_attacking = None        
+            # Getting hit by the other player
+            if self.hitbox.colliderect(target.hitbox) and not target.blocking:
                 target.percentage += 0.5
                 if target.hitbox.x >= self.hitbox.x:
                     target.hitbox.x += 10 * target.percentage
                 else:
                     target.hitbox.x -= 10 * target.percentage
+
+        # Finish attacking
+        # if time.time() - self.attack_time >= 2:
             
-        if self.ai: return
-        else: pass
-        self.attack_type = 0
-
-        # if self.cooldown > 0: 
-        #     self.cooldown -= 16
-        #     return
-
-        # Calculates attack type
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_n]:
-            self.attack_type = 1
-            if self.crouching: self.attack_type = 3
-            if self.modifier: self.attack_type = 5
-            self.cooldown = 128
-        elif keys[pygame.K_m]:
-            self.attack_type = 2 
-            if self.crouching: self.attack_type = 4
-            if self.modifier: self.attack_type = 6
-
+        
     def move(self, tile_list):     
 
         global path
@@ -219,6 +190,7 @@ class Player(pygame.sprite.Sprite):
         delta_x = 0
         delta_y = 0
 
+        # Walking
         if not self.in_air:
             if self.walking: delta_x = -SPEED if self.flip else SPEED
             self.momentum = delta_x
@@ -226,7 +198,6 @@ class Player(pygame.sprite.Sprite):
             if self.momentum > 0: self.momentum -= 0.15
             if self.momentum < 0: self.momentum += 0.15
             delta_x = self.momentum
-
 
         # Gravity
         self.velocity_y += 1
@@ -243,21 +214,22 @@ class Player(pygame.sprite.Sprite):
                 self.momentum = 0
             #check for collision in y direction
             if tile[1].colliderect(self.hitbox.x, self.hitbox.y + delta_y, self.width, self.height):
-                #check if below the ground i.e. jumping
+                # jumping
                 if self.velocity_y < 0:
-                    delta_y = tile[1].bottom - self.hitbox.top
+                    # delta_y = tile[1].bottom - self.hitbox.top
+                    delta_y = tile[1].top - (self.hitbox.bottom + 3)
                     self.velocity_y = 0
-                #check if above the ground i.e. falling
-                if self.velocity_y >= 0:                    
+                # falling
+                elif self.velocity_y >= 0:
                     delta_y = tile[1].top - self.hitbox.bottom
                     self.velocity_y = 0
                     self.in_air = False
                     # Jumping while crouching makes it fall through the platform
-                    if self.crouching and pygame.key.get_pressed()[pygame.K_SPACE]:
+                    if self.crouching and pygame.key.get_pressed()[pygame.K_SPACE] and not tile[2]:
                         self.in_air = True
-                        self.hitbox.top = tile[1].bottom                        
+                        self.hitbox.top = tile[1].bottom
 
-        # Update plater coordinates
+        # Update player coordinates
         self.hitbox.x += delta_x
         self.hitbox.y += delta_y
 
@@ -273,6 +245,7 @@ class Player(pygame.sprite.Sprite):
             self.hitbox.y = 0
             self.momentum = 0
             self.percentage = 0
+            self.lives = self.lives - 1
             path = []
             
     def animate(self):
@@ -298,8 +271,7 @@ class Player(pygame.sprite.Sprite):
                 self.current_frame += 1                
             else: # If it is the last frame of animation
                 self.current_frame = 0
-                # Cooldown for attacking starts when the reaches the last frame
-                if self.attacking: self.attacking = False
+                self.currently_attacking = False               
         next_action = self.current_action
 
         if self.in_air:
@@ -308,30 +280,19 @@ class Player(pygame.sprite.Sprite):
             elif -2 <= self.velocity_y < 7:                
                 next_action = 'mid_air'
             else:
-                next_action = 'fall'                    
+                next_action = 'fall'
         else:
             if self.walking:
-                next_action = 'walk'            
+                next_action = 'walk'
             elif self.blocking and not self.crouching:
                 next_action = 'block'
-            elif self.crouching and not self.attacking:
+            elif self.crouching and not self.currently_attacking:
                 if self.blocking:
                     next_action = 'crouch_block'
                 else:        
                     next_action = 'crouch'       
-            elif self.attacking:
-                if self.attack_type == 1:
-                    next_action = 'atk_punch'
-                if self.attack_type == 2:
-                    next_action = 'atk_kick'
-                if self.attack_type == 3:
-                    next_action = 'low_punch'    
-                if self.attack_type == 4:
-                    next_action = 'low_kick'    
-                if self.attack_type == 5:
-                    next_action = 'high_punch'        
-                if self.attack_type == 6:
-                    next_action = 'high_kick'                   
+            elif self.currently_attacking:
+                next_action = self.attack_type
             else:
                 next_action = 'idle'            
         
@@ -339,7 +300,11 @@ class Player(pygame.sprite.Sprite):
         if next_action != self.current_action:
             self.current_frame = 0
             self.current_action = next_action
-        
+
+        # Defines new hitbox
+        sprite = self.animations[self.current_action][self.current_frame]
+        self.hitbox = pygame.Rect(self.hitbox.x, self.hitbox.y, sprite.get_width()*0.75, self.height)
+
     def draw(self):
         sprite = self.animations[self.current_action][self.current_frame]
         
@@ -349,22 +314,21 @@ class Player(pygame.sprite.Sprite):
         # Draw Grid
         if self.grid:
             # Mask
-            sprite_mask = pygame.mask.from_surface(sprite)
-            mask_surface = pygame.transform.flip(sprite_mask.to_surface(unsetcolor=(0, 0, 0, 0)), self.flip, False)
-            self.screen.blit(mask_surface, (self.hitbox.x - self.offset[0], self.hitbox.y - self.offset[1]))
+            # sprite_mask = pygame.mask.from_surface(sprite)
+            # mask_surface = pygame.transform.flip(sprite_mask.to_surface(unsetcolor=(0, 0, 0, 0)), self.flip, False)
+            # self.screen.blit(mask_surface, (self.hitbox.x - self.offset[0], self.hitbox.y - self.offset[1]))
 
             if self.ai:
                 pygame.draw.rect(self.screen, RED, self.hitbox, 1)
             else:
                 pygame.draw.rect(self.screen, WHITE, self.hitbox, 1)
-                print(f"Pos: {self.hitbox.center}| Action: {self.current_action} | Attack: (A: {self.attacking}, T: {self.attack_type}, C: {self.cooldown}) | Frame: {self.current_frame} | Flip: {self.flip} | Velocity (Y): {self.velocity_y}")
+                print(f"Pos: {self.hitbox.center}| Animation: {self.current_action}:{self.current_frame} | Attack: ({self.start_attacking},{self.currently_attacking},{self.attack_cycle}) | Blocking: {self.blocking} | Flip: {self.flip} | Velocity (Y): {self.velocity_y}")
                 for i in range(1, len(path)):
                     pygame.draw.line(self.screen, WHITE, path[i - 1], path[i])
-        else:
-            # Draw Player
-            self.screen.blit(pygame.transform.flip(sprite, self.flip, False), (self.hitbox.x - self.offset[0], self.hitbox.y - self.offset[1]))
-
-            
+        # else:
+        # Draw Player
+        self.screen.blit(pygame.transform.flip(sprite, self.flip, False), (self.hitbox.x - self.offset[0], self.hitbox.y - self.offset[1]))
+    
     def draw_portrait(self):
         portrait_width = 100
         portrait_height = 100
@@ -374,7 +338,10 @@ class Player(pygame.sprite.Sprite):
 
         # Percentage
         percentage_text = font.render(f"{str('%.2f' % self.percentage)}%", True, BLACK)
+        lives_text = font.render(str(self.lives), True, BLACK)
         if not self.ai:
             self.screen.blit(percentage_text, (SCREEN_WIDTH/2-100, SCREEN_HEIGHT - 100))
+            self.screen.blit(lives_text, (SCREEN_WIDTH/2-100, SCREEN_HEIGHT - 50))
         else:
             self.screen.blit(percentage_text, (SCREEN_WIDTH/2+100, SCREEN_HEIGHT - 100))
+            self.screen.blit(lives_text, (SCREEN_WIDTH/2+100, SCREEN_HEIGHT - 50))

@@ -47,10 +47,16 @@ class World():
                     hitbox = img.get_rect()
                     hitbox.x = col_count * TILE_SIZE
                     hitbox.y = row_count * TILE_SIZE
-                    tile_data = (img, hitbox)
+                    tile_data = (img, hitbox, self.occupied(row_count+1, col_count))
                     self.tile_list.append(tile_data)
                 col_count += 1
             row_count += 1
+
+    def occupied(self, row, col):
+        if self.world_data[row][col] != -1:
+            return True
+        else:
+            return False
 
     def load_world(self):
         world_data = []

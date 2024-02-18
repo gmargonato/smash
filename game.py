@@ -12,22 +12,22 @@ from player import Player
 from snow import Snow
 from world import World
 
-# PyGamed
+# PyGame
 pygame.init()
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))#, RESIZABLE)
-pygame.display.set_caption('Smash')
+pygame.display.set_caption('Super Marvel vs Capcom Smash')
 clock = pygame.time.Clock()
 FPS = 60
 
-CHARACTERS = ['VENOM','CAP','SPIDER']
-player1_character = random.choice(CHARACTERS)
-CHARACTERS.remove(player1_character)
-player2_character = random.choice(CHARACTERS)
+# CHARACTERS = ['VENOM','CAP','SPIDER']
+# player1_character = random.choice(CHARACTERS)
+# CHARACTERS.remove(player1_character)
+# player2_character = random.choice(CHARACTERS)
 
 # Objects
 world = World(screen)
-player1 = Player(screen, 450, 200, 'CAP', False, False)
-player2 = Player(screen, 750, 200, 'CAP', True, True)
+player1 = Player(screen, 450, 200, 'CAP_SHIELD', flip=False, ai=False)
+player2 = Player(screen, 750, 200, 'CAP_SHIELD', True, True)
 snow_effect = Snow(screen)
 
 # Main game loop
@@ -36,7 +36,7 @@ while True:
     # HANDLE EVENTS
     for event in pygame.event.get():
         # WINDOW
-        if event.type == pygame.QUIT:
+        if event.type == pygame.QUIT or player1.lives == 0 or player2.lives == 0:
             pygame.quit()
             sys.exit()     
         # GAME
