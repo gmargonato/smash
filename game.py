@@ -9,6 +9,7 @@ from config import *
 
 # Modules
 from player import Player
+from projectile import Projectile
 from snow import Snow
 from world import World
 
@@ -26,9 +27,10 @@ FPS = 60
 
 # Objects
 world = World(screen)
-player1 = Player(screen, 450, 200, 'CAP_SHIELD', flip=False, ai=False)
-player2 = Player(screen, 750, 200, 'CAP_SHIELD', True, True)
+player1 = Player(450, 200, 'CAP_SHIELD', flip=False, ai=False)
+player2 = Player(750, 200, 'CAP_SHIELD', flip=True,  ai=True)
 snow_effect = Snow(screen)
+projectile_group = pygame.sprite.Group()
 
 # Main game loop
 while True:
@@ -51,10 +53,24 @@ while True:
 
     # UPDATE PLAYERS
     player1.update(world.tile_list, player2)
-    player1.draw()
+    player1.draw(screen)
 
     player2.update(world.tile_list, player1)
-    player2.draw()
+    player2.draw(screen)
+
+    # UPDATE GROUPS
+    if player1.shoot: 
+        projectile = Projectile(player1.hitbox.x, player1.hitbox.y, -1 if player1.flip else 1, player1.shoot_type)
+        projectile_group.add(projectile)
+        player1.shoot = False    
+    projectile_group.update()
+    projectile_group.draw(screen)
+
+    # CHECK COLLISION WITH PROJECTILE
+    for p in projectile_group:
+        if player1.hitbox.colliderect(p.rect) and p.bounce_count > 0: 
+            p.kill()
+            player1.shoot_cooldown = 0
 
     # PARTICLES 
     # snow_effect.snow_flakes_generator()
