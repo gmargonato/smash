@@ -18,7 +18,7 @@ pygame.display.set_caption('Level Editor')
 #define game variables
 ROWS = 20
 MAX_COLS = 40
-TILE_TYPES = 18
+TILE_TYPES = 22
 level = 0
 page = 0
 current_tile = 0
@@ -78,9 +78,6 @@ for x in range(TILE_TYPES):
 
 #define colours
 GRAY 	= (93, 93, 93)
-WHITE 	= (255, 255, 255)
-BLACK 	= (0,0,0)
-RED 	= (200, 25, 25)
 
 #define font
 font = pygame.font.SysFont('Futura', 15)
@@ -162,12 +159,6 @@ while run:
 	#highlight the selected tile
 	pygame.draw.rect(screen, RED, button_list[current_tile].rect, 3)
 
-	#scroll the map
-	if scroll_left == True and scroll > 0:
-		scroll -= 5 * scroll_speed
-	if scroll_right == True and scroll < (MAX_COLS * TILE_SIZE) - SCREEN_WIDTH:
-		scroll += 5 * scroll_speed
-
 	#add new tiles to the screen
 	#get mouse position
 	pos = pygame.mouse.get_pos()
@@ -192,12 +183,6 @@ while run:
 				level += 1
 			if event.key == pygame.K_DOWN and level > 0:
 				level -= 1
-			# if event.key == pygame.K_LEFT:
-			# 	scroll_left = True
-			# if event.key == pygame.K_RIGHT:
-			# 	scroll_right = True
-			# if event.key == pygame.K_RSHIFT:
-			# 	scroll_speed = 5
 			if event.key == pygame.K_g:
 				show_grid = not show_grid
 			if event.key == pygame.K_s:

@@ -1,33 +1,18 @@
 
 # Libraries
 import pygame
-import random
-import time
 import os
 import csv
 from config import *
 
-tile_images = {
-    1: pygame.transform.scale(pygame.image.load('SPRITES/TILES/1.png'), (TILE_SIZE, TILE_SIZE)),
-    2: pygame.transform.scale(pygame.image.load('SPRITES/TILES/2.png'), (TILE_SIZE, TILE_SIZE)),
-    3: pygame.transform.scale(pygame.image.load('SPRITES/TILES/3.png'), (TILE_SIZE, TILE_SIZE)),
-    4: pygame.transform.scale(pygame.image.load('SPRITES/TILES/4.png'), (TILE_SIZE, TILE_SIZE)),
-    5: pygame.transform.scale(pygame.image.load('SPRITES/TILES/5.png'), (TILE_SIZE, TILE_SIZE)),
-    6: pygame.transform.scale(pygame.image.load('SPRITES/TILES/6.png'), (TILE_SIZE, TILE_SIZE)),
-    7: pygame.transform.scale(pygame.image.load('SPRITES/TILES/7.png'), (TILE_SIZE, TILE_SIZE)),
-    8: pygame.transform.scale(pygame.image.load('SPRITES/TILES/8.png'), (TILE_SIZE, TILE_SIZE)),
-    9: pygame.transform.scale(pygame.image.load('SPRITES/TILES/9.png'), (TILE_SIZE, TILE_SIZE)),
-    10: pygame.transform.scale(pygame.image.load('SPRITES/TILES/10.png'), (TILE_SIZE, TILE_SIZE)),
-    11: pygame.transform.scale(pygame.image.load('SPRITES/TILES/11.png'), (TILE_SIZE, TILE_SIZE)),
-    12: pygame.transform.scale(pygame.image.load('SPRITES/TILES/12.png'), (TILE_SIZE, TILE_SIZE)),
-    13: pygame.transform.scale(pygame.image.load('SPRITES/TILES/13.png'), (TILE_SIZE, TILE_SIZE)),
-    14: pygame.transform.scale(pygame.image.load('SPRITES/TILES/14.png'), (TILE_SIZE, TILE_SIZE)),
-    15: pygame.transform.scale(pygame.image.load('SPRITES/TILES/15.png'), (TILE_SIZE, TILE_SIZE)),
-    16: pygame.transform.scale(pygame.image.load('SPRITES/TILES/16.png'), (TILE_SIZE, TILE_SIZE)),
-    17: pygame.transform.scale(pygame.image.load('SPRITES/TILES/17.png'), (TILE_SIZE, TILE_SIZE)),
-}
-
-background = pygame.image.load('SPRITES/BACKGROUND/BG1.png')
+background = pygame.image.load('SPRITES/BACKGROUND/BG2.png')
+tile_images = {}
+for filename in os.listdir('SPRITES/TILES/'):
+    if filename.endswith('.png') and filename != '0.png':
+        tile_number = int(filename.split('.')[0])
+        image_path = os.path.join('SPRITES/TILES/', filename)
+        image = pygame.transform.scale(pygame.image.load(image_path), (TILE_SIZE, TILE_SIZE))
+        tile_images[tile_number] = image
 
 class World():
     def __init__(self, screen):
@@ -47,13 +32,31 @@ class World():
                     hitbox = img.get_rect()
                     hitbox.x = col_count * TILE_SIZE
                     hitbox.y = row_count * TILE_SIZE
-                    tile_data = (img, hitbox, self.occupied(row_count+1, col_count))
+                    tile_data = (
+                        img, # Sprite image
+                        hitbox, # Size
+                        self.solid(tile),                        
+                        self.occupied(row_count+1, col_count), # Check if there is another tile below
+                        self.border(row_count,col_count) # Check if its a border tile
+                    )
                     self.tile_list.append(tile_data)
                 col_count += 1
             row_count += 1
 
+    def solid(self, tile):
+        if tile in SOLID_TILES:
+            return True
+        else:
+            return False
+
     def occupied(self, row, col):
         if self.world_data[row][col] != -1:
+            return True
+        else:
+            return False
+        
+    def border(self, row, col):
+        if (self.world_data[row][col-1] == -1) or (self.world_data[row][col+1] == -1):
             return True
         else:
             return False
@@ -71,7 +74,10 @@ class World():
         if not self.grid: self.screen.blit(background, (0,0))
         for tile in self.tile_list:
             if self.grid:
+                if tile[2] == False: continue
                 self.screen.blit(self.tile_0, tile[1])
+                if tile[2]: pygame.draw.rect(self.screen, BLACK, tile[1], 1)
+                if tile[4]: pygame.draw.rect(self.screen, BLUE, tile[1], 2)                
             else:                
                 self.screen.blit(tile[0], tile[1])
     
