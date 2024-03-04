@@ -7,7 +7,7 @@ font = pygame.font.SysFont('Arial Black', 15)
 
 projectile_list = {
     'boomerang'    : "/Users/gabrielmargonato/Documents/Python Scripts/smash/SPRITES/CAP_SHIELD/PROJECTILE",
-    'hadouken'      : "",
+    'hadouken'      : "/Users/gabrielmargonato/Documents/Python Scripts/smash/SPRITES/RYU/PROJECTILE",
 }
 
 class Projectile(pygame.sprite.Sprite):

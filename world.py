@@ -33,8 +33,8 @@ class World():
                     hitbox.x = col_count * TILE_SIZE
                     hitbox.y = row_count * TILE_SIZE
                     tile_data = (
-                        img, # Sprite image
-                        hitbox, # Size
+                        img, # Sprite
+                        hitbox, # Hitbox
                         self.solid(tile),                        
                         self.occupied(row_count+1, col_count), # Check if there is another tile below
                         self.border(row_count,col_count) # Check if its a border tile

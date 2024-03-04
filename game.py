@@ -22,8 +22,8 @@ FPS = 30
 
 # Objects
 world = World(screen)
-player1 = Player(450, 200, 'CAP_SHIELD', False, 'P1')
-player2 = Player(750, 200, 'CAP_SHIELD', True,  'AI')
+player1 = Player(450, 200, 'CAP_SHIELD',False, 'P1')
+player2 = Player(750, 200, 'RYU',       True,  'AI')
 snow_effect = Snow(screen)
 projectile_group = pygame.sprite.Group()
 
@@ -33,7 +33,7 @@ while True:
     # HANDLE EVENTS
     for event in pygame.event.get():
         # WINDOW
-        if event.type == pygame.QUIT or player1.lives == 0 or player2.lives == 0:
+        if event.type == pygame.QUIT: #or player1.lives == 0 or player2.lives == 0:
             pygame.quit()
             sys.exit()     
         # GAME
@@ -69,21 +69,29 @@ while True:
         p.update()
         p.draw(screen)
         if p.get_owner() == 'P1':
-            if player1.hitbox.colliderect(p.rect) and player1.shoot_type == 'boomerang' and p.bounce_count > 0:
-                p.kill()
-                print("Player 1 retrieved")
-                player1.shoot_cooldown = 0
-            elif player2.hitbox.colliderect(p.rect):
-                p.kill()
-                print("Player 2 hit")
-        else: # Projectile belongs to Player2
-            if player2.hitbox.colliderect(p.rect) and player2.shoot_type == 'boomerang' and p.bounce_count > 0:
-                p.kill()
-                print("Player 2 retrieved")
+            if player1.shoot_cooldown <= 0: p.kill()        
+            # Player 1 retrieves
+            if player1.hitbox.colliderect(p.rect) and player1.shoot_type == 'boomerang' and (p.bounce_count > 0 or p.speed == 0):
+                    player1.shoot_cooldown = 0
+                    p.kill()                            
+            # Player 2 hit
+            elif player2.hitbox.colliderect(p.rect) and p.speed > 0:            
+                if not player2.blocking: 
+                    player2.percentage += 5
+                    p.kill()
+                else: 
+                    p.speed = 0                
+                    p.rect.y = player2.hitbox.bottom-5
+        else: # Owner = 'P2'      
+            if player2.shoot_cooldown <= 0: p.kill()      
+            # Player 2 retrives
+            if player2.hitbox.colliderect(p.rect) and player2.shoot_type == 'boomerang' and p.bounce_count > 0:                            
                 player2.shoot_cooldown = 0
-            elif player1.hitbox.colliderect(p.rect):
+                p.kill()    
+            # Player 1 hit
+            elif player1.hitbox.colliderect(p.rect) and p.speed > 0:
                 p.kill()
-                print("Player 1")
+                if not player1.blocking: player1.percentage += 5
         
     # PARTICLES
     if not world.grid: snow_effect.snow_flakes_generator()
