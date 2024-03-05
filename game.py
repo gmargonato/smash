@@ -22,8 +22,9 @@ FPS = 30
 
 # Objects
 world = World(screen)
-player1 = Player(450, 200, 'CAP_SHIELD',False, 'P1')
-player2 = Player(750, 200, 'RYU',       True,  'AI')
+
+player1 = Player(x=450, y=200, character='CAP1', flip=False, controller='P1',lives=3,percentage=0)
+player2 = Player(x=750, y=200, character='RYU', flip=False, controller='AI',lives=3,percentage=0)
 snow_effect = Snow(screen)
 projectile_group = pygame.sprite.Group()
 
@@ -63,36 +64,36 @@ while True:
     if player1.shoot: 
         projectile = Projectile('P1', player1.hitbox.x, player1.hitbox.y, -1 if player1.flip else 1, player1.shoot_type)
         projectile_group.add(projectile)
-        player1.shoot = False
-        
+        player1.shoot = False        
+        if player1.character == 'CAP1':
+            player1 = Player(x=player1.hitbox.x, y=player1.hitbox.y, character='CAP2', flip=player1.flip, controller='P1',lives=player1.lives,percentage=player1.percentage)
+
     for p in projectile_group:
         p.update()
         p.draw(screen)
-        if p.get_owner() == 'P1':
-            if player1.shoot_cooldown <= 0: p.kill()        
-            # Player 1 retrieves
-            if player1.hitbox.colliderect(p.rect) and player1.shoot_type == 'boomerang' and (p.bounce_count > 0 or p.speed == 0):
-                    player1.shoot_cooldown = 0
-                    p.kill()                            
-            # Player 2 hit
-            elif player2.hitbox.colliderect(p.rect) and p.speed > 0:            
-                if not player2.blocking: 
-                    player2.percentage += 5
-                    p.kill()
-                else: 
-                    p.speed = 0                
-                    p.rect.y = player2.hitbox.bottom-5
-        else: # Owner = 'P2'      
-            if player2.shoot_cooldown <= 0: p.kill()      
-            # Player 2 retrives
-            if player2.hitbox.colliderect(p.rect) and player2.shoot_type == 'boomerang' and p.bounce_count > 0:                            
-                player2.shoot_cooldown = 0
-                p.kill()    
-            # Player 1 hit
-            elif player1.hitbox.colliderect(p.rect) and p.speed > 0:
-                p.kill()
-                if not player1.blocking: player1.percentage += 5
-        
+        for player in [player1,player2]:
+            if player.hitbox.colliderect(p.rect):
+                if p.owner == player.controller: # Collides with Owner
+                    if p.speed == 0 or p.bounce > 0:
+                        player1.shoot_cooldown = 0
+                        p.kill()
+                        new_character = 'CAP1' if player.character == 'CAP2' else player.character
+                        globals()[f"player{player.controller[-1]}"] = Player(x=player.hitbox.x, y=player.hitbox.y, character=new_character, flip=player.flip, controller=player.controller, lives=player.lives, percentage=player.percentage)
+
+                else: # Collides with Enemy
+                    if p.speed == 0: continue
+                    if p.type == 'boomerang':
+                        if player.blocking:
+                            p.speed = 0
+                            p.rect.y = player.hitbox.bottom-5
+                        else:    
+                            player.percentage += 5 
+                            p.speed *= -1
+                            p.bounce += 1                        
+                    else:
+                        if not player.blocking: player.percentage += 5
+                        p.kill()
+                    
     # PARTICLES
     if not world.grid: snow_effect.snow_flakes_generator()
 
