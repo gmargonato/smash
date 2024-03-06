@@ -7,46 +7,45 @@ import os
 import time
 from config import *
 
-animation_info = {
+animation_list = {
     'ring_out': {
-        'scale'     : 1,
-        'speed'     : 10,
-        'offset'    : (0,0),
+        'path'      : "/Users/gabrielmargonato/Documents/Python Scripts/smash/SPRITES/ANIMATIONS/RING_OUT",
+        'scale'     : 5
     },
 }
 
-class Animation():
-    def __init__(self, x, y):
-        self.animations = {
-            'ring_out' : self.load_animation('ring_out')
-        }
-        self.current = None
-        self.frame = 0
-        self.pos = [x,y]
+class Animation(pygame.sprite.Sprite):
+    def __init__(self, x, y, name):
+        pygame.sprite.Sprite.__init__(self)      
+        # self.screen = screen  
+        self.name = name
+        self.index = 0
+        self.frames = self.load_images()        
+        self.image = self.frames[self.index]
+        self.last_frame_update = 0
+        
+    def load_images(self):
+        images = []
+        folder_path = animation_list[self.name]['path']
+        scale = animation_list[self.name]['scale']
+        for file_name in sorted(os.listdir(folder_path)):
+            if file_name.endswith('.png'):
+                loaded_image = pygame.image.load(os.path.join(folder_path, file_name))#.convert_alpha()
+                image = pygame.transform.scale(loaded_image, (int(loaded_image.get_width() * scale), int(loaded_image.get_height() * scale)))
+                images.append(image)
+        return images
 
-    def load_animation(self, name):
-        animation_list = []
-        path = f'SPRITES/ANIMATIONS/{name.upper()}/'
-        files = os.listdir(path)
-        png_files = [file for file in files if file.endswith('.png')]
-        png_files.sort(key=lambda x: int(x.split('.')[0]))    
-        #print("PNG Files:", png_files)
-        for png_file in png_files:
-            full_path = os.path.join(path, png_file)            
-            img = pygame.image.load(full_path)
-            scale = animation_info[name]['scale']
-            img = pygame.transform.scale(img, (int(img.get_width() * scale), int(img.get_height() * scale)))
-            animation_list.append(img)
-        #print(f"{name} List:",animation_list)
-        return animation_list
-    
-    def update(self, animation_name):
-        self.current = self.animations[animation_name]
-        if self.frame < len(self.current) - 1:           
-            self.frame += 1
-        else:
-            self.current = None
-            self.kill()
-            
-    def draw(self, screen):
-        screen.blit(self.current[self.frame], self.pos)
+    def update(self):
+        last_frame = len(self.frames)
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_frame_update < 50:
+            return
+        else: 
+            self.last_frame_update = current_time
+            self.index += 1
+            if self.index == last_frame:
+                self.kill()
+            self.image = self.frames[self.index]
+
+    def draw(self, screen, x, y):
+        screen.blit(self.image, (x, y))  

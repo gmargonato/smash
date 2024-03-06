@@ -56,14 +56,14 @@ class World():
             return False
         
     def border(self, row, col):
-        if (self.world_data[row][col-1] == -1) or (self.world_data[row][col+1] == -1):
+        if (self.world_data[row][col-1] == -1 or self.world_data[row][col+1] == -1) and self.world_data[row-1][col] == -1:
             return True
         else:
             return False
 
     def load_world(self):
         world_data = []
-        with open('level_0.csv', newline='') as csvfile:
+        with open('level_1.csv', newline='') as csvfile:
             for row in csv.reader(csvfile, delimiter=','):
                 world_row = [int(cell) for cell in row]
                 world_data.append(world_row)

@@ -10,6 +10,7 @@ from config import *
 # Modules
 from player import Player
 from projectile import Projectile
+from animation import Animation
 from snow import Snow
 from world import World
 
@@ -22,6 +23,7 @@ FPS = 30
 
 # Objects
 world = World(screen)
+
 
 player1 = Player(x=450, y=200, character='CAP1', flip=False, controller='P1',lives=3,percentage=0)
 player2 = Player(x=750, y=200, character='RYU', flip=False, controller='AI',lives=3,percentage=0)
@@ -62,30 +64,30 @@ while True:
 
     # PROJECTILES
     if player1.shoot: 
-        projectile = Projectile('P1', player1.hitbox.x, player1.hitbox.y, -1 if player1.flip else 1, player1.shoot_type)
+        projectile = Projectile('P1', player1.rect.x, player1.rect.y, -1 if player1.flip else 1, player1.shoot_type)
         projectile_group.add(projectile)
         player1.shoot = False        
         if player1.character == 'CAP1':
-            player1 = Player(x=player1.hitbox.x, y=player1.hitbox.y, character='CAP2', flip=player1.flip, controller='P1',lives=player1.lives,percentage=player1.percentage)
+            player1 = Player(x=player1.rect.x, y=player1.rect.y, character='CAP2', flip=player1.flip, controller='P1',lives=player1.lives,percentage=player1.percentage)
 
     for p in projectile_group:
         p.update()
         p.draw(screen)
         for player in [player1,player2]:
-            if player.hitbox.colliderect(p.rect):
+            if player.rect.colliderect(p.rect):
                 if p.owner == player.controller: # Collides with Owner
                     if p.speed == 0 or p.bounce > 0:
                         player1.shoot_cooldown = 0
                         p.kill()
                         new_character = 'CAP1' if player.character == 'CAP2' else player.character
-                        globals()[f"player{player.controller[-1]}"] = Player(x=player.hitbox.x, y=player.hitbox.y, character=new_character, flip=player.flip, controller=player.controller, lives=player.lives, percentage=player.percentage)
+                        globals()[f"player{player.controller[-1]}"] = Player(x=player.rect.x, y=player.rect.y, character=new_character, flip=player.flip, controller=player.controller, lives=player.lives, percentage=player.percentage)
 
                 else: # Collides with Enemy
                     if p.speed == 0: continue
                     if p.type == 'boomerang':
                         if player.blocking:
                             p.speed = 0
-                            p.rect.y = player.hitbox.bottom-5
+                            p.rect.y = player.rect.bottom-5
                         else:    
                             player.percentage += 5 
                             p.speed *= -1
