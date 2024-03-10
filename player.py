@@ -15,23 +15,39 @@ characters = {
     'CAP1': {
         'speed'     : 10,
         'scale'     : 0.75,
+        'width'     : 45,
         'height'    : 80,
-        'offset'    : (20,0),
-        'projectile':'boomerang',
+        'projectile':'cap_shield',
     },
     'CAP2': {
         'speed'     : 10,
         'scale'     : 0.75,
-        'height'    : 80,
-        'offset'    : (20,0),
+        'width'     : 45,
+        'height'    : 80,        
         'projectile':None,
     },
     'RYU': {
         'speed'     : 10,
         'scale'     : 0.85,
+        'width'     : 45,
         'height'    : 80,
-        'offset'    : (20,15),
         'projectile':'hadouken',
+    },
+    'SPIDER': {
+        'speed'     : 10,
+        'scale'     : 0.8,
+        'width'     : 45,
+        'height'    : 80,
+        'offset'    : 20,
+        'projectile':'web',
+    },
+    'VENOM': {
+        'speed'     : 10,
+        'scale'     : 0.8,
+        'width'     : 50,
+        'height'    : 80,
+        'offset'    : 20,
+        'projectile':'web',
     },
 }
 
@@ -42,6 +58,7 @@ class Player(pygame.sprite.Sprite):
         self.lives = lives
         self.percentage = percentage
         self.character = character
+        self.events = []
         self.current_action = 'idle'
         self.current_frame = 0       
         self.last_frame_update = 0
@@ -49,16 +66,16 @@ class Player(pygame.sprite.Sprite):
         self.momentum = 0
         self.in_air = True
         self.flip = flip
-        self.grid = False
         self.walking = False
         self.crouching = False
         self.jumping = False        
         self.blocking = False
+        self.hit = False
+        self.stun_cooldown = 0
         self.start_attack = None
         self.currently_attacking = False        
         self.attack_type = None
         self.next_attack_window = 0        
-        self.shoot = False
         self.shoot_cooldown = 0
         
         # Sprites, Hitbox & Offset
@@ -80,12 +97,17 @@ class Player(pygame.sprite.Sprite):
             'LK1'           : self.load_animation('LOW_KICK'),            
             'NS1'            : self.load_animation('NORMAL_SHOOT'),
         }
+        self.width      = characters[self.character]['width']
+        self.height     = characters[self.character]['height']        
         self.image      = self.animations[self.current_action][self.current_frame]        
-        self.width      = self.image.get_width()/2
-        self.height     = characters[self.character]['height']
-        self.offset     = (characters[self.character]['offset'][0], characters[self.character]['offset'][1])        
-        self.rect       = pygame.Rect(x, y, self.width, self.height)
+        self.rect       = pygame.Rect(x, y, self.width, self.height) 
         self.mask       = pygame.mask.from_surface(self.image)
+        
+        # Offsets
+        try:
+            self.base_offset_x = characters[self.character]['offset'] * (1 if self.flip else -1)
+        except:
+            self.base_offset_x = 0
 
     def load_animation(self, name):
         animation_list = []
@@ -103,25 +125,37 @@ class Player(pygame.sprite.Sprite):
 
     def update(self, tile_list, target):
         if self.controller == 'AI':
-            self.ai_input(target)
+            self.ai_input(tile_list, target)
         else:
             self.get_input()
         self.combat(target)
         self.move(tile_list, target)
         self.animate()
 
-    def ai_input(self, target):
-        if target.rect.x < self.rect.x:
-            self.flip = True        
-        else:
-            self.flip = False
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_j]:
-            self.blocking = True
-        else:
-            self.blocking = False
+    def ai_input(self, tile_list, target):
 
+        # self.walking = False
+        # if target.rect.bottom == self.rect.bottom: # If on the same platform as the player            
+            # self.walking = True
+        self.flip = target.rect.x < self.rect.x
+        # else:
+        #     for tile in tile_list:            
+        #         if tile[1].colliderect(self.rect.move(0, 1)) and tile[4] and tile[2]: # If on a border, flip direction
+        #             self.flip = not self.flip  
+        #             break                  
+                    
+        keys = pygame.key.get_pressed()
+        # if keys[pygame.K_n] or keys[pygame.K_m]:            
+        #     chance = random.randint(1, 10)
+        #     if chance == 1: self.blocking = not self.blocking
+        if keys[pygame.K_h] and self.shoot_cooldown <= 0:
+            self.shoot_cooldown = 100            
+            self.events.append(('projectile', (self.rect.centerx, self.rect.centery)))    
+                
     def get_input(self):
+
+        # Do not get inputs if the player is stunned
+        if self.stun_cooldown > 0: return
 
         keys = pygame.key.get_pressed()
 
@@ -143,7 +177,7 @@ class Player(pygame.sprite.Sprite):
         else:
             self.blocking = False 
         # Jump
-        if keys[pygame.K_w] and not self.jumping and not self.in_air and not self.crouching:        
+        if keys[pygame.K_w] and not self.jumping and not self.in_air and not self.crouching and not self.currently_attacking:        
             self.velocity_y = -GRAVITY*1.5
             self.jumping = True
         else:
@@ -159,7 +193,8 @@ class Player(pygame.sprite.Sprite):
         
     def combat(self, target):
 
-        self.shoot_cooldown  = max(0, self.shoot_cooldown - 10)
+        self.stun_cooldown      = max(0, self.stun_cooldown - 10)
+        self.shoot_cooldown     = max(0, self.shoot_cooldown - 10)
         self.next_attack_window = max(0, self.next_attack_window - 10)
         
         # Starting an attack
@@ -170,8 +205,8 @@ class Player(pygame.sprite.Sprite):
             # set attack type
             if self.start_attack == 'shooting':
                 self.shoot_cooldown = 1300
-                self.attack_type = 'NS1'                    
-                self.shoot = True            
+                self.attack_type = 'NS1'   
+                self.events.append(('projectile', (self.rect.centerx, self.rect.centery)))                
             elif self.start_attack == 'punch':
                 self.next_attack_window = 100
                 if self.crouching:  self.attack_type = 'LP1'
@@ -182,23 +217,29 @@ class Player(pygame.sprite.Sprite):
                 else:               self.attack_type = 'NK1'
             self.start_attack = None 
         
-        # Collision system between one player (self) and another (target)              
+        # Collision system between one player (self) and another (target)        
         if self.currently_attacking:
-            collide_points = self.mask.overlap(target.mask, (target.rect.x - self.rect.x, target.rect.y - self.rect.y))
-            if collide_points:
+            if self.get_collision(target):                            
                 if (
                     (self.attack_type[0] == 'N' and not target.blocking) or
                     (self.attack_type[0] == 'L' and not (target.blocking and target.crouching)) or
                     (target.currently_attacking and target.current_frame < self.current_frame)
                 ):    
-                    # Animate            
+                    # self.events.append(('hit', (self.rect.left if self.flip else self.rect.right, self.rect.y)))  
                     target.percentage = min(target.percentage + 0.05, 100)
-                    floor_perc = math.floor(target.percentage) # Rounds the percentge down to the nearest integer
-                    target.velocity_y = - (1+floor_perc%10)
-                    # Random push mechanic
-                    roll = random.randint(floor_perc, 100)
-                    target.momentum = 50 if roll == floor_perc else 5 * (1 if self.rect.x < target.rect.x else -1)
+                    rounded_percentage = math.floor(target.percentage) # Rounds the percentge down to the nearest integer
+                    target.velocity_y = - (5+rounded_percentage%10)
+                    # Push mechanic
+                    roll = random.randint(rounded_percentage, 100)
+                    target.momentum = 50 if roll == rounded_percentage else 5 * (1 if self.rect.x < target.rect.x else -1)
 
+    def get_collision(self, target):
+        if self.rect.centerx < target.rect.centerx:
+            overlap = self.mask.overlap(target.mask, (target.rect.x - self.rect.x , target.rect.y - self.rect.y))
+        else:
+            overlap = self.mask.overlap(target.mask, (self.rect.x - target.rect.x, target.rect.y - self.rect.y))            
+        return overlap is not None        
+        
     def move(self, tile_list, target):     
 
         global path
@@ -239,15 +280,11 @@ class Player(pygame.sprite.Sprite):
                 elif self.velocity_y >= 0:
                     delta_y = tile[1].top - self.rect.bottom
                     self.velocity_y = 0                    
-                    self.in_air = False
+                    self.in_air = False                    
                     # Jumping while crouching makes it fall through the platform
                     if (self.crouching and pygame.key.get_pressed()[pygame.K_w] and not tile[3]) or(self.controller == 'AI' and self.rect.y <= 200):
                         self.in_air = True
                         self.rect.top = tile[1].bottom
-
-        # Collision with Players
-        # if self.rect.move(delta_x, 0).colliderect(target.rect):
-        #     delta_x = 0
 
         # Update player coordinates
         self.rect.x += delta_x
@@ -260,6 +297,7 @@ class Player(pygame.sprite.Sprite):
 
         # If falls from ring
         if self.rect.bottom >= SCREEN_HEIGHT:
+            self.events.append(('ring_out', (self.rect.centerx, SCREEN_HEIGHT)))
             self.rect.x = SCREEN_WIDTH/2-50
             self.rect.y = 0
             self.momentum = 0
@@ -321,12 +359,16 @@ class Player(pygame.sprite.Sprite):
             self.current_frame = 0
             self.current_action = next_action
 
-        # Update Image, Hitbox (Rect) & Mask
+        # Update Image
         self.image  = pygame.transform.flip(self.animations[self.current_action][self.current_frame], self.flip, False)
         self.mask   = pygame.mask.from_surface(self.image)
-        # self.rect   = pygame.Rect(self.rect.x, self.rect.y, self.width, self.height)
-                
-    def draw(self, screen):        
+        # Calculate Offset
+        if not self.flip:
+            self.offset_x = self.base_offset_x
+        else:
+            self.offset_x = - self.base_offset_x + self.rect.width - self.image.get_width()
+
+    def draw(self, screen, grid):        
         # Draw Percentage
         percentage_text = font.render(f"{str('%.2f' % self.percentage)}%", True, BLACK)
         lives_text      = font.render(f"Lives: {str(self.lives)}", True, BLACK)
@@ -338,20 +380,28 @@ class Player(pygame.sprite.Sprite):
             screen.blit(lives_text, (SCREEN_WIDTH/2+100, SCREEN_HEIGHT - 50))
 
         # Draw Grid
-        if self.grid:
-            if self.controller == 'AI':
-                pygame.draw.rect(screen, RED, self.rect, 1)
-            else:
-                pygame.draw.rect(screen, GREEN, self.rect, 1)
-                print(f"""
-                      Pos: {self.rect.center} | Y-Velocity: {self.velocity_y} | Momentum: {self.momentum}
-                      Animation: ({self.current_action},{self.current_frame})
-                      Attack: ({self.currently_attacking},{self.attack_type},{self.next_attack_window})
-                      Shoot: {self.shoot},{self.shoot_cooldown}  
-                """)
-                for i in range(1, len(path)):
-                    pygame.draw.line(screen, WHITE, path[i - 1], path[i])
-            # screen.blit(self.mask.to_surface(unsetcolor=(0,0,0,0), setcolor=(255,255,255,255)), (self.rect.x - self.offset[0], self.rect.y - self.offset[1]))
-        # else:              
-        screen.blit(self.image, (self.rect.x - self.offset[0], self.rect.y - self.offset[1]))
+        if grid:
         
+            # Print Hitbox
+            pygame.draw.rect(screen, RED if self.controller == "AI" else GREEN, self.rect, 1)
+        
+            for i in range(1, len(path)):
+                pygame.draw.line(screen, WHITE, path[i - 1], path[i])
+            
+            # Draw Mask
+            screen.blit(self.mask.to_surface(unsetcolor=(0,0,0,0), setcolor=(255,255,255,255)), (self.rect.x + self.offset_x, self.rect.y - self.image.get_height() + self.rect.height + 9))                
+        
+        # Draw Player if not stunned
+        if self.stun_cooldown <= 0 :                
+            screen.blit(self.image, (self.rect.x + self.offset_x, self.rect.y - self.image.get_height() + self.rect.height + 10))
+        
+        # Debug Info
+        print(f"""
+                Pos: {self.rect.center} | X-Velocity: {int(self.momentum)} | Y-Velocity: {int(self.velocity_y)}
+                Animation: ({self.current_action},{self.current_frame})
+                Hit: {self.hit} | Stun: {self.stun_cooldown}
+                Attack: ({self.currently_attacking},{self.attack_type},{self.next_attack_window})
+                Shoot: {self.shoot_cooldown} 
+        """)
+        
+            

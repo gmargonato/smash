@@ -6,8 +6,9 @@ from config import *
 font = pygame.font.SysFont('Arial Black', 15)
 
 projectile_list = {
-    'boomerang' : "/Users/gabrielmargonato/Documents/Python Scripts/smash/SPRITES/CAP1/PROJECTILE",
-    'hadouken'  : "/Users/gabrielmargonato/Documents/Python Scripts/smash/SPRITES/RYU/PROJECTILE",
+    'cap_shield'    : "/Users/gabrielmargonato/Documents/Python Scripts/smash/SPRITES/CAP1/PROJECTILE",
+    'hadouken'      : "/Users/gabrielmargonato/Documents/Python Scripts/smash/SPRITES/RYU/PROJECTILE",
+    'web'           : "/Users/gabrielmargonato/Documents/Python Scripts/smash/SPRITES/SPIDER/PROJECTILE",
 }
 
 class Projectile(pygame.sprite.Sprite):
@@ -17,12 +18,13 @@ class Projectile(pygame.sprite.Sprite):
         self.owner = owner
         self.direction = direction        
         self.type = type
-        self.frame_index = 0
-        self.images = self.load_images()
-        self.image = self.images[0]
+        self.index = 0
+        self.frames = self.load_images()
+        self.image = self.frames[0]
         self.rect = self.image.get_rect()
-        self.rect.center = (x + 100, y + 30)
+        self.rect.center = (x, y)
         self.bounce = 0
+        self.last_frame_update = 0
 
     def load_images(self):
         images = []
@@ -36,15 +38,18 @@ class Projectile(pygame.sprite.Sprite):
     def update(self):
 
         # Update projectile animation
-        self.frame_index += 1
-        if self.frame_index >= len(self.images):
-            self.frame_index = 0
-        self.image = self.images[self.frame_index]
+        last_frame = len(self.frames) - 1
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_frame_update > 50:
+            self.index += 1
+            if self.index == last_frame:
+                self.index = 0
+            self.image = self.frames[self.index]
 
         # Update projectile position
         self.rect.x += (self.speed * self.direction)
         if self.rect.right >= SCREEN_WIDTH or self.rect.left <= 0:
-            if self.type == "boomerang":
+            if self.type in ["cap_shield"]:
                 self.direction *= -1
                 self.bounce += 1
             else:

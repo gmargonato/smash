@@ -15,11 +15,10 @@ for filename in os.listdir('SPRITES/TILES/'):
         tile_images[tile_number] = image
 
 class World():
-    def __init__(self, screen):
-        self.screen = screen
+    def __init__(self, map_name):
+        self.map_name = map_name
         self.world_data = self.load_world()
         self.tile_list = []
-        self.grid = False
 
         # Tile images
         self.tile_0 = pygame.image.load('SPRITES/TILES/0.png')
@@ -63,23 +62,23 @@ class World():
 
     def load_world(self):
         world_data = []
-        with open('level_1.csv', newline='') as csvfile:
+        with open(self.map_name, newline='') as csvfile:
             for row in csv.reader(csvfile, delimiter=','):
                 world_row = [int(cell) for cell in row]
                 world_data.append(world_row)
         return world_data
 
-    def draw(self):
-        self.screen.fill(COLOR_BG)
-        if not self.grid: self.screen.blit(background, (0,0))
+    def draw(self, screen, grid):
+        screen.fill(COLOR_BG)
+        if not grid: screen.blit(background, (0,0))
         for tile in self.tile_list:
-            if self.grid:
+            if grid:
                 if tile[2] == False: continue
-                self.screen.blit(self.tile_0, tile[1])
-                if tile[2]: pygame.draw.rect(self.screen, BLACK, tile[1], 1)
-                if tile[4]: pygame.draw.rect(self.screen, BLUE, tile[1], 2)                
+                screen.blit(self.tile_0, tile[1])
+                if tile[2]: pygame.draw.rect(screen, BLACK, tile[1], 1)
+                if tile[4]: pygame.draw.rect(screen, BLUE, tile[1], 2)                
             else:                
-                self.screen.blit(tile[0], tile[1])
+                screen.blit(tile[0], tile[1])
     
         #     for line in range(0,50):
         #         pygame.draw.line(screen, WHITE, (0, line * TILE_SIZE), (SCREEN_WIDTH, line * TILE_SIZE))

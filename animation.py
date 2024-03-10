@@ -10,15 +10,24 @@ from config import *
 animation_list = {
     'ring_out': {
         'path'      : "/Users/gabrielmargonato/Documents/Python Scripts/smash/SPRITES/ANIMATIONS/RING_OUT",
-        'scale'     : 5
+        'scale'     : 1
+    },
+    'hit': {
+        'path'      : "/Users/gabrielmargonato/Documents/Python Scripts/smash/SPRITES/ANIMATIONS/HIT",
+        'scale'     : 0.5
+    },
+    'webbed': {
+        'path'      : "/Users/gabrielmargonato/Documents/Python Scripts/smash/SPRITES/ANIMATIONS/WEBBED",
+        'scale'     : 1
     },
 }
 
 class Animation(pygame.sprite.Sprite):
-    def __init__(self, x, y, name):
+    def __init__(self, name, x, y):
         pygame.sprite.Sprite.__init__(self)      
-        # self.screen = screen  
         self.name = name
+        self.x = x
+        self.y = y
         self.index = 0
         self.frames = self.load_images()        
         self.image = self.frames[self.index]
@@ -32,11 +41,12 @@ class Animation(pygame.sprite.Sprite):
             if file_name.endswith('.png'):
                 loaded_image = pygame.image.load(os.path.join(folder_path, file_name))#.convert_alpha()
                 image = pygame.transform.scale(loaded_image, (int(loaded_image.get_width() * scale), int(loaded_image.get_height() * scale)))
+                image.set_colorkey((0,0,0))
                 images.append(image)
         return images
 
     def update(self):
-        last_frame = len(self.frames)
+        last_frame = len(self.frames) - 1
         current_time = pygame.time.get_ticks()
         if current_time - self.last_frame_update < 50:
             return
@@ -47,5 +57,5 @@ class Animation(pygame.sprite.Sprite):
                 self.kill()
             self.image = self.frames[self.index]
 
-    def draw(self, screen, x, y):
-        screen.blit(self.image, (x, y))  
+    def draw(self, screen):
+        screen.blit(self.image, (self.x, self.y)) #, special_flags = pygame.BLEND_SUB or BLEND_ADD
